@@ -1,0 +1,17 @@
+{
+  "name": "clickndebrid",
+  "version": "1.0.0",
+  "description": "A Click'n'Load proxy server that converts links via real-debrid.com API and submits them to PyLoad et al.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "author": "XaverLeet",
+  "license": "GPL-3.0-or-later",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "crypto-js": "^4.1.1",
+    "express": "^4.18.2",
+    "superagent": "^8.1.2"
+  }
+}
