@@ -9,4 +9,10 @@ services:
       - 127.0.0.1:9666:9666
     environment:
       - "REALDEBRID_TOKEN="
-      - "CNL_URL="
+      - "CNL_URL=http://192.168.88.30:9666"
+      - "REDIS_URL=redis://redis:6379"
+  redis:
+    image: redis:alpine
+    restart: unless-stopped
+    volumes: 
+      - ./redis:/data

@@ -8,6 +8,8 @@ Node.js [Click'n'Load](https://jdownloader.org/knowledge/wiki/glossary/cnl2) ser
 
 ### manual
 ```bash
+git clone https://github.com/XaverLeet/clickndebrid.git
+cd clickndebrid
 npm install
 npm start
 ```
@@ -27,6 +29,7 @@ docker compose build
 docker compose up -d
 ```
 
-## Environment values
+## Environment Variables
 - `REALDEBRID_TOKEN`: You secret API token issued at http://real-debrid.com/apitoken after logged in. Example: HYG6INDYBRFSD4YTKE3QRSGYK4921A6OLHIIFFWITBZNNAANC67Q
 - `CNL_URL`: URL of the Click'n'Load server, preferably [PyLoad](https://pyload.net), including the Click'n'Load port 9666. Example: http://192.168.1.1:9666 (without a trailing slash!).
+- `REDIS_URL`: URL of a [Redis](https://redis.io) server used for caching
