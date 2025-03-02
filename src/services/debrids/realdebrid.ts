@@ -1,9 +1,9 @@
-import { loggerService } from "../loggerService";
+import { loggerService } from "../loggerService.js";
 import {
   RealDebridUnrestrictResponse,
   RealDebridErrorResponse,
-} from "../../types/debrids/realdebrid";
-import { config } from "../../config";
+} from "../../types/debrids/realdebrid.js";
+import { config } from "../../config/index.js";
 
 const API_BASE_URL = "https://api.real-debrid.com/rest/1.0";
 
@@ -42,9 +42,7 @@ async function callRealDebridApi<T>(
     if (!response.ok) {
       const error = data as RealDebridErrorResponse;
       throw new Error(
-        `Real-Debrid API error: ${error.error} (${
-          error.error_code || "unknown code"
-        })`
+        `Real-Debrid API error: ${error.error} (${error.error_code || "unknown code"})`
       );
     }
 

@@ -1,8 +1,8 @@
-import { CacheInterface } from './cacheInterface';
-import { RedisCache } from './redisCache';
-import { MemoryCache } from './memoryCache';
-import { config } from '../../config';
-import { loggerService } from '../loggerService';
+import { CacheInterface } from "./cacheInterface.js";
+import { RedisCache } from "./redisCache.js";
+import { MemoryCache } from "./memoryCache.js";
+import { config } from "../../config/index.js";
+import { loggerService } from "../loggerService.js";
 
 /**
  * Cache factory to create the appropriate cache provider
@@ -33,10 +33,10 @@ class CacheFactory {
     // Lazy initialization of the cache provider
     if (!this.cacheProvider) {
       if (config.redis.enabled) {
-        loggerService.info('Using Redis cache provider');
+        loggerService.info("Using Redis cache provider");
         this.cacheProvider = new RedisCache();
       } else {
-        loggerService.info('Using memory cache provider');
+        loggerService.info("Using memory cache provider");
         this.cacheProvider = new MemoryCache();
       }
     }

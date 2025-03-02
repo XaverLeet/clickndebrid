@@ -1,27 +1,26 @@
 # Build stage
-FROM node:23-alpine as builder
+FROM node:20-alpine as builder
 
 WORKDIR /usr/src/app
 
 # Copy package files
 COPY package*.json ./
 
-# Install most recent npm
-RUN npm -g install npm
-
 # Install dependencies
 RUN npm ci
 
-# Copy source code
+# Copy source code and config files
 COPY tsconfig.json ./
+COPY postcss.config.js ./
+COPY tailwind.config.js ./
 COPY src/ ./src/
-COPY copy-public.js ./
+COPY scripts/ ./scripts/
 
 # Build TypeScript code
 RUN npm run build
 
 # Production stage
-FROM node:23-alpine
+FROM node:20-alpine
 
 WORKDIR /usr/src/app
 

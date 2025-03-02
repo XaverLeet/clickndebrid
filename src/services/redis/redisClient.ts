@@ -1,6 +1,6 @@
 import { createClient, RedisClientType } from "redis";
-import { loggerService } from "../loggerService";
-import { config } from "../../config";
+import { loggerService } from "../loggerService.js";
+import { config } from "../../config/index.js";
 
 // Maximum number of connection attempts before giving up
 const MAX_CONNECTION_ATTEMPTS = 3;
@@ -18,9 +18,7 @@ async function withTimeout<T>(
 ): Promise<T> {
   return Promise.race([
     promise,
-    new Promise<T>((_, reject) =>
-      setTimeout(() => reject(new Error(errorMessage)), ms)
-    ),
+    new Promise<T>((_, reject) => setTimeout(() => reject(new Error(errorMessage)), ms)),
   ]);
 }
 
@@ -89,9 +87,7 @@ class RedisClient {
         }
 
         // Initialize Redis client
-        loggerService.info(
-          `Attempting to connect to Redis at ${config.redis.url}`
-        );
+        loggerService.info(`Attempting to connect to Redis at ${config.redis.url}`);
 
         this.client = createClient({
           url: config.redis.url,
@@ -241,9 +237,7 @@ class RedisClient {
         return false;
       }
       const ttlToUse = ttl !== undefined ? ttl : config.redis.ttl;
-      await withTimeout(
-        this.client.set(key, JSON.stringify(value), { EX: ttlToUse })
-      );
+      await withTimeout(this.client.set(key, JSON.stringify(value), { EX: ttlToUse }));
       return true;
     } catch (error) {
       loggerService.error("Error setting value in Redis", {
@@ -329,14 +323,7 @@ class RedisClient {
 
       // Perform the scan operation
       const scanResult = await withTimeout(
-        this.client.sendCommand([
-          "SCAN",
-          scanCursor,
-          "MATCH",
-          pattern,
-          "COUNT",
-          count.toString(),
-        ])
+        this.client.sendCommand(["SCAN", scanCursor, "MATCH", pattern, "COUNT", count.toString()])
       );
 
       // Parse the result

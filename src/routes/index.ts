@@ -1,8 +1,8 @@
 import { Router } from "express";
-import rootRouter from "./root";
-import flashRouter from "./flash";
-import apiRouter from "./api";
-import adminRouter from "./admin";
+import rootRouter from "./root.js";
+import flashRouter from "./flash.js";
+import apiRouter from "./api/index.js";
+import adminRouter from "./admin.js";
 
 const router = Router();
 

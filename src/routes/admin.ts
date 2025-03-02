@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
-import { getCacheService as _getCacheService } from "../services/cache/cacheFactory";
-import { CnlData as _CnlData } from "../types";
+import { getCacheService as _getCacheService } from "../services/cache/cacheFactory.js";
+import { CnlData as _CnlData } from "../types/index.js";
 
 const router = Router();
 

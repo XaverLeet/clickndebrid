@@ -1,24 +1,24 @@
 /**
  * Click'n'Load Service
- * 
+ *
  * This service handles Click'n'Load (CNL) protocol operations, primarily:
  * - Submitting decrypted and processed links to the destination service
  * - Formatting link data according to the CNL protocol requirements
  * - Handling encryption/decryption of CNL data
- * 
+ *
  * The CNL protocol allows websites to send encrypted download links to download
  * managers. This service acts as a middleware that processes these links through
  * debrid services before forwarding them to the final destination.
  */
 import { URLSearchParams } from "url";
-import { CnlData } from "../types";
-import { cryptoService } from "./cryptoService";
-import { loggerService } from "./loggerService";
-import { config } from "../config/index";
+import { CnlData } from "../types/index.js";
+import { cryptoService } from "./cryptoService.js";
+import { loggerService } from "./loggerService.js";
+import { config } from "../config/index.js";
 
 /**
  * Service for handling Click'n'Load operations
- * 
+ *
  * Implements the singleton pattern to ensure only one instance exists.
  */
 class CnlService {
@@ -28,7 +28,7 @@ class CnlService {
 
   /**
    * Returns the singleton instance of the CnlService
-   * 
+   *
    * @returns {CnlService} The singleton CnlService instance
    */
   public static getInstance(): CnlService {
@@ -40,25 +40,27 @@ class CnlService {
 
   /**
    * Submits processed CNL data to the destination service
-   * 
+   *
    * This method:
    * 1. Takes CNL data that has been processed through debrid services
    * 2. Formats it according to the CNL protocol requirements
    * 3. Encrypts it as needed
    * 4. POSTs it to the configured destination URL (typically a download manager)
    * 5. Handles any errors during submission
-   * 
+   *
    * @param {CnlData} cnlData - The processed CNL data to submit with unrestricted links
    * @returns {Promise<string>} Promise resolving to the encrypted response
    * @throws {Error} If submission fails or no links are available to submit
    */
   public async submitToDestinationService(cnlData: CnlData): Promise<string> {
     if (!cnlData.files || cnlData.files.results.length === 0) {
-      loggerService.error("No links to submit", cnlData);
+      loggerService.error("No links to submit", { cnlData });
       throw new Error("No links to submit");
     }
     // Convert processed links to newline-separated string and encrypt the response
-    const _processedLinksString = cnlData.files.results.map((r) => r.processed).join("\r\n");
+    const _processedLinksString = cnlData.files.results
+      .map((r: { processed: string }) => r.processed)
+      .join("\r\n");
     const CnlData = cryptoService.encrypt(cnlData);
 
     // Submit to destination service

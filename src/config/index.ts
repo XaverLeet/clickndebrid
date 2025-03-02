@@ -18,23 +18,23 @@
 
 /**
  * Configuration Module
- * 
+ *
  * This module handles loading, validating, and providing access to application configuration.
  * It supports configuration through:
  * - Environment variables
  * - .env file
- * 
+ *
  * The configuration includes:
  * - Server settings (port, destination URL)
  * - Debrid service settings (API tokens, service selection)
  * - Redis configuration (connection, authentication)
  * - Logging settings
- * 
+ *
  * The module validates critical configuration options and provides sensible defaults.
  */
 
-import { loggerService } from "../services/loggerService";
-import { Config, DebridServiceType } from "../types/config";
+import { loggerService } from "../services/loggerService.js";
+import { Config, DebridServiceType } from "../types/config.js";
 import * as dotenv from "dotenv";
 import { existsSync } from "fs";
 import { resolve } from "path";
@@ -104,9 +104,7 @@ export const loadEnvironment = (): EnvLoadResult => {
  */
 export const logEnvironmentInfo = (envLoadResult: EnvLoadResult): void => {
   if (envLoadResult.source === "file") {
-    loggerService.info(
-      `Environment variables loaded from .env file: ${envLoadResult.path}`
-    );
+    loggerService.info(`Environment variables loaded from .env file: ${envLoadResult.path}`);
   } else {
     if (envLoadResult.path) {
       if (envLoadResult.error) {
@@ -115,9 +113,7 @@ export const logEnvironmentInfo = (envLoadResult: EnvLoadResult): void => {
         );
         loggerService.warn("Using system environment variables as fallback");
       } else {
-        loggerService.info(
-          "No .env file found, using system environment variables"
-        );
+        loggerService.info("No .env file found, using system environment variables");
       }
     } else {
       loggerService.info("Using system environment variables");
@@ -128,24 +124,20 @@ export const logEnvironmentInfo = (envLoadResult: EnvLoadResult): void => {
 // Helper function to validate log level
 const validateLogLevel = (level: string | undefined): Config["logLevel"] => {
   const validLevels = ["error", "warn", "info", "debug"] as const;
-  return validLevels.includes(level as any)
-    ? (level as Config["logLevel"])
-    : "info";
+  return validLevels.includes(level as Config["logLevel"]) ? (level as Config["logLevel"]) : "info";
 };
 
 // Helper function to validate debrid service
-const validateDebridService = (
-  service: string | undefined
-): DebridServiceType => {
+const validateDebridService = (service: string | undefined): DebridServiceType => {
   return service === "realdebrid" ? service : "realdebrid";
 };
 
 /**
  * Application configuration object
- * 
+ *
  * This object contains all configuration settings for the application, loaded
  * from environment variables with sensible defaults.
- * 
+ *
  * Environment variables:
  * - CND_DESTINATION_URL: URL to forward links to (e.g., download manager URL)
  * - CND_DEBRIDSERVICE: Which debrid service to use (currently only 'realdebrid')
@@ -172,29 +164,25 @@ export const config: Config = {
 
 /**
  * Validates the application configuration
- * 
+ *
  * This function checks critical configuration settings and logs warnings or errors
  * if essential settings are missing or invalid. It:
- * 
+ *
  * 1. Verifies that the Real-Debrid API token is set
  * 2. Logs information about Redis configuration
- * 
+ *
  * A validation failure doesn't stop the application but logs appropriate errors
  * to help with troubleshooting.
  */
 export const validateConfig = (): void => {
   if (!config.realDebridApiToken) {
-    loggerService.error(
-      "CND_REALDEBRID_APITOKEN not set, service will not work properly"
-    );
+    loggerService.error("CND_REALDEBRID_APITOKEN not set, service will not work properly");
   }
 
   // Log Redis configuration
   if (config.redis.enabled) {
     loggerService.info(
-      `Redis is enabled, using URL: ${
-        config.redis.url || "redis://localhost:6379"
-      }`
+      `Redis is enabled, using URL: ${config.redis.url || "redis://localhost:6379"}`
     );
   }
   // The log message about using memory cache is already handled in cacheFactory.ts

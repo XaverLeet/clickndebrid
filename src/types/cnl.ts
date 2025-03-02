@@ -1,4 +1,4 @@
-import { ProcessingResult } from "./debrid";
+import { ProcessingResult } from "./debrid.js";
 
 export interface CnlData {
   crypted: string;

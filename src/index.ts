@@ -18,14 +18,14 @@
 
 /**
  * ClicknDebrid Application Entry Point
- * 
+ *
  * This is the main entry point for the ClicknDebrid application. It:
  * - Loads environment variables and configuration
  * - Sets up graceful shutdown handlers
  * - Initializes the Express application
  * - Configures error handling for uncaught exceptions
  * - Starts the HTTP server
- * 
+ *
  * The application flow:
  * 1. Load environment variables before any other imports
  * 2. Initialize Redis client (but don't connect yet - that happens in app.ts)
@@ -34,19 +34,19 @@
  */
 
 // Load environment variables first, before any other imports
-import { loadEnvironment, config, validateConfig, logEnvironmentInfo } from "./config/index";
+import { loadEnvironment, config, validateConfig, logEnvironmentInfo } from "./config/index.js";
 
 // Load environment variables immediately
 const envLoadResult = loadEnvironment();
 
 // Now it's safe to import other modules that use environment variables
-import { createApp } from "./app";
-import { loggerService } from "./services/loggerService";
+import { createApp } from "./app.js";
+import { loggerService } from "./services/loggerService.js";
 // Import RedisClientSingleton instead of the initialized instance
-import { RedisClientSingleton } from "./services/redis/redisClient";
+import { RedisClientSingleton } from "./services/redis/redisClient.js";
 import { Server } from "http";
 // Import package.json for version information
-import packageJson from "../package.json";
+import packageJson from "../package.json" with { type: "json" };
 
 // Initialize the Redis client singleton (but don't connect yet)
 const redisClient = RedisClientSingleton.getInstance();
@@ -55,15 +55,15 @@ let server: Server;
 
 /**
  * Graceful shutdown function
- * 
+ *
  * Handles application shutdown by:
  * 1. Stopping the HTTP server gracefully
  * 2. Closing the Redis connection if enabled
  * 3. Logging shutdown progress
  * 4. Terminating the process with appropriate exit code
- * 
+ *
  * Includes timeouts to force termination if graceful shutdown takes too long.
- * 
+ *
  * @param {string} signal - The signal that triggered the shutdown (SIGTERM, SIGINT, etc.)
  */
 async function shutdown(signal: string) {
@@ -120,7 +120,7 @@ process.on("uncaughtException", (error: Error) => {
 });
 
 // Handle unhandled promise rejections
-process.on("unhandledRejection", (reason: any, promise: Promise<any>) => {
+process.on("unhandledRejection", (reason: unknown, promise: Promise<unknown>) => {
   const error = reason instanceof Error ? reason : new Error(String(reason));
   loggerService.error("Unhandled rejection", {
     error: error.message,
@@ -133,13 +133,13 @@ process.on("unhandledRejection", (reason: any, promise: Promise<any>) => {
 
 /**
  * Start the server and initialize the application
- * 
+ *
  * This function:
  * 1. Logs environment information
  * 2. Validates configuration
  * 3. Creates and initializes the Express application
  * 4. Starts the HTTP server on the configured port
- * 
+ *
  * If any errors occur during startup, they are logged and the process exits.
  */
 const startServer = async () => {
@@ -161,7 +161,17 @@ const startServer = async () => {
       loggerService.info(`Server running on port ${config.port}`);
     });
   } catch (error) {
-    loggerService.error("Failed to start server", { error });
+    loggerService.error("Failed to start server", {
+      error:
+        error instanceof Error
+          ? {
+              message: error.message,
+              stack: error.stack,
+              name: error.name,
+            }
+          : error,
+    });
+    console.error("Startup error:", error);
     process.exit(1);
   }
 };

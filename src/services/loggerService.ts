@@ -1,7 +1,7 @@
 import * as winston from "winston";
 import chalk from "chalk";
-import { LoggerService, LogMetadata as _LogMetadata, Config as _Config } from "../types";
-import { config as _config } from "../config/index";
+import { LoggerService, LogMetadata as _LogMetadata, Config as _Config } from "../types/index.js";
+import { config as _config } from "../config/index.js";
 
 // Internal implementation
 class WinstonLoggerService implements LoggerService {
@@ -53,19 +53,19 @@ class WinstonLoggerService implements LoggerService {
     });
   }
 
-  public error(message: string, metadata?: Record<string, any>): void {
+  public error(message: string, metadata?: Record<string, unknown>): void {
     this._logger.error(message, metadata || {});
   }
 
-  public warn(message: string, metadata?: Record<string, any>): void {
+  public warn(message: string, metadata?: Record<string, unknown>): void {
     this._logger.warn(message, metadata || {});
   }
 
-  public info(message: string, metadata?: Record<string, any>): void {
+  public info(message: string, metadata?: Record<string, unknown>): void {
     this._logger.info(message, metadata || {});
   }
 
-  public debug(message: string, metadata?: Record<string, any>): void {
+  public debug(message: string, metadata?: Record<string, unknown>): void {
     this._logger.debug(message, metadata || {});
   }
 

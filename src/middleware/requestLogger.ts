@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { loggerService } from "../services/loggerService";
+import { loggerService } from "../services/loggerService.js";
 
 type RequestLogMetadata = {
   requestId: string;

@@ -1,6 +1,6 @@
 import CryptoJS from "crypto-js";
-import { CnlData } from "../types";
-import { loggerService } from "./loggerService";
+import { CnlData } from "../types/index.js";
+import { loggerService } from "./loggerService.js";
 
 /** Interface for encryption/decryption operations */
 export interface ICryptoService {
@@ -54,13 +54,13 @@ export class CryptoService implements ICryptoService {
     loggerService.debug("Encrypting CNL response");
 
     if (!cnlData.files || cnlData.files.results.length === 0) {
-      loggerService.error("No links to encrypt", cnlData);
+      loggerService.error("No links to encrypt", { cnlData });
       throw new Error("No links to encrypt");
     }
 
     // Convert processed links to newline-separated string
     const processedLinksString = cnlData.files.results
-      .map((r) => r.processed)
+      .map((r: { processed: string }) => r.processed)
       .join("\r\n");
 
     const key = this.getKey(cnlData.jk);

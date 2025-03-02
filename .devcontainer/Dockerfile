@@ -1,4 +1,4 @@
-FROM node:23-alpine
+FROM node:20-alpine
 
 # Add basic development tools
 RUN apk add --no-cache git sudo
@@ -14,7 +14,7 @@ ENV DEVCONTAINER=true
 WORKDIR /workspace
 
 # Install global packages
-RUN npm install -g typescript ts-node nodemon npm
+RUN npm install -g typescript nodemon npm tsx
 
 # Set up workspace permissions
 RUN mkdir -p /workspace/node_modules && \

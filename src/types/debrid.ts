@@ -1,4 +1,4 @@
-import { CnlData as _CnlData } from "./cnl";
+import { CnlData as _CnlData } from "./cnl.js";
 
 export interface ProcessedLink {
   /** Original link before processing */

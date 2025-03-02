@@ -1,11 +1,11 @@
 import { Router, Request, Response } from "express";
-import { CnlData } from "../types";
-import { debridService } from "../services/debridService";
-import { config } from "../config";
-import { loggerService } from "../services/loggerService";
-import { cnlService } from "../services/cnlService";
-import { cryptoService } from "../services/cryptoService";
-import { getCacheService } from "../services/cache/cacheFactory";
+import { CnlData } from "../types/index.js";
+import { debridService } from "../services/debridService.js";
+import { config } from "../config/index.js";
+import { loggerService } from "../services/loggerService.js";
+import { cnlService } from "../services/cnlService.js";
+import { cryptoService } from "../services/cryptoService.js";
+import { getCacheService } from "../services/cache/cacheFactory.js";
 
 const router = Router();
 
@@ -31,7 +31,7 @@ router.post("/addcrypted2", async (req: Request, res: Response) => {
     cnlData.files = await debridService.processRequest(debridServiceName, cnlData);
 
     // Cache complete processing result if we have a package name
-    if (cnlData.files.results.length > 0 && cnlData.package) {
+    if (cnlData.files && cnlData.files.results.length > 0 && cnlData.package) {
       try {
         // Generate timestamp for the package - explicitly using UTC
         const timestamp = new Date().toISOString();

@@ -1,6 +1,6 @@
 /**
  * Main application module for ClicknDebrid
- * 
+ *
  * This module sets up the Express application with all necessary middleware,
  * view engines, static file serving, Redis connection, and route configurations.
  * It configures the application to handle Click'n'Load requests and process
@@ -9,27 +9,32 @@
 import express from "express";
 import bodyParser from "body-parser";
 import path from "path";
+import { fileURLToPath } from "url";
 import ejsLayouts from "express-ejs-layouts";
-import { config } from "./config/index";
-import routes from "./routes";
-import { loggerService } from "./services/loggerService";
-import { RedisClientSingleton } from "./services/redis/redisClient";
-import { requestLogger } from "./middleware/requestLogger";
-import packageJson from "../package.json";
+import { config } from "./config/index.js";
+import routes from "./routes/index.js";
+import { loggerService } from "./services/loggerService.js";
+import { RedisClientSingleton } from "./services/redis/redisClient.js";
+import { requestLogger } from "./middleware/requestLogger.js";
+import packageJson from "../package.json" with { type: "json" };
+
+// Get current file path for ES modules (replacement for __dirname)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Get singleton Redis client instance for use throughout the application
 const redisClient = RedisClientSingleton.getInstance();
 
 /**
  * Creates and configures the Express application
- * 
+ *
  * This function:
  * 1. Initializes Redis connection if enabled
  * 2. Configures logging
  * 3. Sets up middleware (body parsing, static files)
  * 4. Configures view engine and layouts
  * 5. Sets up application routes
- * 
+ *
  * @returns {Promise<express.Application>} Configured Express application
  */
 export const createApp = async () => {

@@ -1,7 +1,10 @@
 import * as fs from "fs";
 import * as path from "path";
+import { fileURLToPath } from "url";
 
-// Get the project root directory
+// Get the project root directory (ES module compatible way)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const projectRoot: string = path.join(__dirname, "..");
 
 // Create the dist/public directory structure

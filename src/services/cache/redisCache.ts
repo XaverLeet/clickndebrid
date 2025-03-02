@@ -1,7 +1,7 @@
-import { RedisClientSingleton } from "../redis/redisClient";
-import { CacheInterface } from "./cacheInterface";
-import { loggerService } from "../loggerService";
-import { config } from "../../config";
+import { RedisClientSingleton } from "../redis/redisClient.js";
+import { CacheInterface } from "./cacheInterface.js";
+import { loggerService } from "../loggerService.js";
+import { config } from "../../config/index.js";
 
 // Get Redis client instance
 const redisClient = RedisClientSingleton.getInstance();
@@ -109,7 +109,7 @@ export class RedisCache implements CacheInterface {
     try {
       return await redisClient.keys(pattern);
     } catch (error) {
-      loggerService.error('Failed to get keys from Redis cache', { pattern, error });
+      loggerService.error("Failed to get keys from Redis cache", { pattern, error });
       return [];
     }
   }
@@ -129,11 +129,11 @@ export class RedisCache implements CacheInterface {
     try {
       return await redisClient.scanKeys(pattern, cursor, count);
     } catch (error) {
-      loggerService.error('Failed to scan keys from Redis cache', { 
-        pattern, 
-        cursor, 
-        count, 
-        error 
+      loggerService.error("Failed to scan keys from Redis cache", {
+        pattern,
+        cursor,
+        count,
+        error,
       });
       return { cursor: 0, keys: [] };
     }
@@ -161,10 +161,7 @@ export class RedisCache implements CacheInterface {
 
       return result;
     } catch (error) {
-      loggerService.error(
-        "Failed to retrieve multiple values from Redis cache",
-        { keys, error }
-      );
+      loggerService.error("Failed to retrieve multiple values from Redis cache", { keys, error });
       return result;
     }
   }
@@ -174,9 +171,7 @@ export class RedisCache implements CacheInterface {
    */
   async setMultiple<T>(entries: Map<string, T>, ttl?: number): Promise<void> {
     if (!config.redis.enabled) {
-      loggerService.debug(
-        "Redis is not available, skipping setMultiple operation"
-      );
+      loggerService.debug("Redis is not available, skipping setMultiple operation");
       return;
     }
 
