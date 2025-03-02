@@ -1,0 +1,47 @@
+<div class="max-w-3xl mx-auto">
+  <h1 class="text-3xl font-bold mb-6">About click'n'debrid</h1>
+
+  <div class="card p-6 mb-6">
+    <div class="flex flex-col md:flex-row items-center md:items-start mb-6">
+      <img src="/img/logo.svg" alt="click'n'debrid Logo" class="h-32 w-32 mx-auto md:mx-0 mb-4 md:mb-0 md:mr-6">
+
+      <div>
+        <h2 class="text-2xl font-bold mb-2">click'n'debrid</h2>
+        <p class="mb-2">Version <%= version %></p>
+        <p class="opacity-75">A Click'n'Load proxy server that converts links via debrid services API and submits them
+          to PyLoad et al.</p>
+      </div>
+    </div>
+
+    <h3 class="text-xl font-semibold mb-3">Overview</h3>
+    <p class="mb-4">
+      click'n'debrid serves as an intermediary between Click'n'Load compatible browser extensions and download managers
+      like PyLoad.
+      It automatically processes links through debrid services to provide premium download links, enhancing your
+      downloading experience
+      without manual intervention.
+    </p>
+
+    <h3 class="text-xl font-semibold mb-3">Features</h3>
+    <ul class="list-disc pl-5 mb-4 space-y-2">
+      <li>Intercepts Click'n'Load requests from browser extensions</li>
+      <li>Processes file links through debrid services (e.g., Real-Debrid)</li>
+      <li>Forwards converted premium links to your download manager</li>
+      <li>Caches processed packages for easy management</li>
+      <li>Supports both Redis and in-memory caching</li>
+      <li>Modern admin interface for managing packages</li>
+    </ul>
+
+    <h3 class="text-xl font-semibold mb-3">License</h3>
+    <p class="mb-4">
+      click'n'debrid is licensed under the GNU General Public License v3.0 or later (GPL-3.0-or-later).
+      This means you can freely use, modify, and distribute this software, provided you include the original license
+      and copyright notice with any distribution.
+    </p>
+
+    <div class="text-center mt-8">
+      <p class="opacity-75">Created by XaverLeet</p>
+      <p class="text-sm opacity-50 mt-2">&copy; <%= new Date().getFullYear() %> All Rights Reserved</p>
+    </div>
+  </div>
+</div>

@@ -1,0 +1,75 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Container",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "address": "localhost",
+      "localRoot": "${workspaceFolder}",
+      "remoteRoot": "/workspace",
+      "restart": true,
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "/workspace/*": "${workspaceFolder}/*"
+      },
+      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/node_modules/**"],
+      "timeout": 30000,
+      "preLaunchTask": "Start Debug in Container",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "Debug Container (with Break)",
+      "type": "node",
+      "request": "attach",
+      "port": 9229,
+      "address": "localhost",
+      "localRoot": "${workspaceFolder}",
+      "remoteRoot": "/workspace",
+      "restart": true,
+      "sourceMaps": true,
+      "sourceMapPathOverrides": {
+        "/workspace/*": "${workspaceFolder}/*"
+      },
+      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/node_modules/**"],
+      "timeout": 30000,
+      "preLaunchTask": "Start Debug in Container (Break)",
+      "internalConsoleOptions": "neverOpen"
+    },
+    {
+      "name": "Debug Local",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--inspect", "--require", "ts-node/register"],
+      "args": ["${workspaceFolder}/src/index.ts"],
+      "cwd": "${workspaceFolder}",
+      "restart": true,
+      "sourceMaps": true,
+      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/node_modules/**"],
+      "internalConsoleOptions": "neverOpen",
+      "env": {
+        "NODE_ENV": "development"
+      }
+    },
+    {
+      "name": "Debug Local (with Break)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--inspect-brk", "--require", "ts-node/register"],
+      "args": ["${workspaceFolder}/src/index.ts"],
+      "cwd": "${workspaceFolder}",
+      "restart": true,
+      "sourceMaps": true,
+      "outFiles": ["${workspaceFolder}/dist/**/*.js"],
+      "skipFiles": ["<node_internals>/**", "${workspaceFolder}/node_modules/**"],
+      "internalConsoleOptions": "neverOpen",
+      "env": {
+        "NODE_ENV": "development"
+      }
+    }
+  ]
+}

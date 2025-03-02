@@ -1,0 +1,185 @@
+/* Custom CSS Variables */
+:root {
+  /* Light Theme Colors */
+  --color-primary-light: #4c51bf;
+  --color-secondary-light: #8da2fb;
+  --color-text-light: #1a202c;
+  --color-bg-light: #f7fafc;
+  --color-card-light: #ffffff;
+  --color-border-light: #e2e8f0;
+  --color-accent-light: #805ad5;
+
+  /* Dark Theme Colors */
+  --color-primary-dark: #6366f1;
+  --color-secondary-dark: #818cf8;
+  --color-text-dark: #e2e8f0;
+  --color-bg-dark: #111827;
+  --color-card-dark: #1f2937;
+  --color-border-dark: #374151;
+  --color-accent-dark: #a78bfa;
+}
+
+/* Apply theme variables */
+.light-theme {
+  --color-primary: var(--color-primary-light);
+  --color-secondary: var(--color-secondary-light);
+  --color-text: var(--color-text-light);
+  --color-bg: var(--color-bg-light);
+  --color-card: var(--color-card-light);
+  --color-border: var(--color-border-light);
+  --color-accent: var(--color-accent-light);
+}
+
+.dark-theme {
+  --color-primary: var(--color-primary-dark);
+  --color-secondary: var(--color-secondary-dark);
+  --color-text: var(--color-text-dark);
+  --color-bg: var(--color-bg-dark);
+  --color-card: var(--color-card-dark);
+  --color-border: var(--color-border-dark);
+  --color-accent: var(--color-accent-dark);
+}
+
+/* Default to dark theme */
+:root {
+  --color-primary: var(--color-primary-dark);
+  --color-secondary: var(--color-secondary-dark);
+  --color-text: var(--color-text-dark);
+  --color-bg: var(--color-bg-dark);
+  --color-card: var(--color-card-dark);
+  --color-border: var(--color-border-dark);
+  --color-accent: var(--color-accent-dark);
+}
+
+body {
+  background-color: var(--color-bg);
+  color: var(--color-text);
+  transition: background-color 0.3s, color 0.3s;
+}
+
+/* Custom components */
+.btn-primary {
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  background-color: var(--color-primary);
+  color: white;
+  transition: all 0.2s;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary:hover {
+  filter: brightness(1.1);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.btn-secondary {
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  font-weight: 500;
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  color: var(--color-text);
+  transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-border);
+}
+
+/* Status colors */
+.text-success {
+  color: #10b981; /* Green 500 */
+}
+
+.text-danger {
+  color: #ef4444; /* Red 500 */
+}
+
+/* GitHub icon styling */
+.github-icon {
+  transition: all 0.3s ease;
+}
+
+.light-theme .github-icon {
+  color: #333333;
+}
+
+.dark-theme .github-icon {
+  color: #e2e8f0;
+}
+
+.github-icon:hover {
+  transform: scale(1.1);
+  color: var(--color-primary);
+}
+
+.card {
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  transition: all 0.2s;
+}
+
+.nav-link {
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s;
+}
+
+.nav-link:hover {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+.nav-link.active {
+  background-color: var(--color-primary);
+  color: white;
+}
+
+/* Theme switcher styles */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+.theme-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--color-card);
+  border: 1px solid var(--color-border);
+  transition: 0.4s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 3px;
+  background-color: var(--color-primary);
+  transition: 0.4s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: var(--color-card);
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+}

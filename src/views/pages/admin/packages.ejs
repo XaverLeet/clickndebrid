@@ -1,0 +1,472 @@
+<div class="mx-auto">
+  <h1 class="text-3xl font-bold mb-8">Packages</h1>
+
+  <div id="packagesApp">
+    <!-- Loading state -->
+    <div v-if="loading" class="flex justify-center items-center py-12">
+      <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+    </div>
+
+    <!-- Error state -->
+    <div v-if="error" class="bg-red-500 bg-opacity-20 border border-red-500 text-red-500 px-5 py-4 rounded-md mb-6">
+      <p class="font-medium">{{ error }}</p>
+    </div>
+
+    <!-- Empty state -->
+    <div v-if="!loading && packages.length === 0" class="card p-8 text-center">
+      <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 mx-auto mb-6 opacity-40" fill="none" viewBox="0 0 24 24"
+        stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+      </svg>
+      <h3 class="text-2xl font-medium mb-3">No packages found.</h3>
+      <p class="opacity-75 mb-6 max-w-md mx-auto">No packages are currently cached in the system.</p>
+      <button @click="refreshPackages" class="btn-primary inline-flex items-center px-4 py-2 rounded-md">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+          stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+        </svg>
+        Refresh
+      </button>
+    </div>
+
+    <!-- Packages list -->
+    <div v-if="!loading && packages.length > 0">
+      <div class="mb-6 flex justify-between items-center">
+        <h2 class="text-xl font-semibold">{{ pagination.totalItems }} package(s) found</h2>
+        <button @click="refreshPackages" class="btn-primary text-sm flex items-center px-4 py-2 rounded-md shadow-sm">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Refresh
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <div v-for="(pkg, index) in packages" :key="pkg.package || index"
+          class="card hover:shadow-md transition-shadow">
+          <!-- Package header -->
+          <div class="p-5 flex items-center justify-between border-b border-gray-100 dark:border-gray-700">
+            <div class="flex-grow">
+              <h3 class="font-bold text-lg">
+                {{ pkg.package || 'Unnamed Package' }}
+                <span class="text-sm font-bold text-gray-500" v-if="calculateTotalSize(pkg) > 0">
+                  ({{ formatFileSize(calculateTotalSize(pkg)) }})
+                </span>
+                <br>
+                <span class="text-sm font-normal text-gray-500"
+                  v-if="pkg.files && pkg.files.stats && pkg.files.stats.processedAt">
+                  {{ formatLocalTime(pkg.files.stats.processedAt) }}
+                </span>
+              </h3>
+              <div class="text-sm text-gray-500 mt-1">
+                {{ pkg.source || 'Unknown source' }}
+              </div>
+            </div>
+            <div class="flex flex-col space-y-3">
+              <!-- First row - smaller utility buttons -->
+              <div class="flex space-x-3">
+                <a :href="`/api/v1/packages/${pkg.package}/filelist`" download
+                  class="btn-secondary text-xs flex items-center px-3 py-2 rounded-md bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  <span class="flex-grow">Download filelist</span>
+                </a>
+                <button @click="reprocessPackage(pkg.package)"
+                  class="btn-secondary text-xs flex items-center px-3 py-2 rounded-md bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1.5" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  <span class="flex-grow">Re-debrid</span>
+                </button>
+              </div>
+
+              <!-- Second row - bigger primary action buttons -->
+              <div class="flex space-x-3">
+                <button @click="deletePackage(pkg.package)"
+                  class="flex-1 py-2.5 flex items-center justify-center text-base bg-red-600 hover:bg-red-700 text-white rounded-md shadow-sm hover:shadow transition-all">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  <span>Delete</span>
+                </button>
+                <button @click="resubmitPackage(pkg.package)"
+                  class="btn-primary flex-1 py-2.5 flex items-center justify-center text-base rounded-md shadow-sm hover:shadow transition-all">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24"
+                    stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+                  </svg>
+                  <span>Resubmit</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Toggle details button -->
+          <div class="px-4 mb-3">
+            <button @click="togglePackage(pkg.package || index)"
+              class="text-sm text-primary flex items-center hover:underline">
+              <span v-if="!isPackageExpanded(pkg.package || index)">Show files</span>
+              <span v-else>Hide files</span>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1.5"
+                :class="{'transform rotate-180': isPackageExpanded(pkg.package || index)}" fill="none"
+                viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+
+          <!-- Package details -->
+          <div v-if="isPackageExpanded(pkg.package || index)" class="px-5 pb-5 pt-2">
+            <div class="bg-gray-50 dark:bg-gray-800 rounded-md p-3 overflow-x-auto">
+              <table class="w-full text-sm">
+                <thead class="text-left text-xs uppercase text-gray-500 border-b border-gray-200 dark:border-gray-700">
+                  <tr>
+                    <th class="py-3 px-4">Filename</th>
+                    <th class="py-3 px-4 text-right">Size</th>
+                    <th class="py-3 px-4 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
+                  <tr v-for="(result, resultIndex) in pkg.files.results" :key="resultIndex"
+                    class="hover:bg-gray-100 dark:hover:bg-gray-700">
+                    <td class="py-3 px-4 font-medium">
+                      <a :href="result.processed" target="_blank" :title="result.processed"
+                        class="hover:underline text-primary">
+                        {{ result.filename || 'Unknown file' }}
+                      </a>
+                    </td>
+                    <td class="py-3 px-4 text-right">
+                      {{ result.filesize ? formatFileSize(result.filesize) : 'Unknown' }}
+                    </td>
+                    <td class="py-3 px-4 text-right">
+                      <span v-if="result.success" class="text-success font-bold">✓</span>
+                      <span v-else class="text-danger font-bold" :title="result.error">✗</span>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pagination -->
+      <div class="mt-8 flex justify-between items-center" v-if="pagination.totalPages > 1">
+        <button @click="changePage(currentPage - 1)" :disabled="currentPage === 1"
+          class="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 rounded-md disabled:opacity-50 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors shadow-sm">
+          <span class="flex items-center">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            Previous
+          </span>
+        </button>
+
+        <div class="flex items-center space-x-6">
+          <div class="flex items-center space-x-2">
+            <span class="text-sm">Page</span>
+            <input type="number" v-model="jumpToPage" min="1" :max="pagination.totalPages"
+              class="w-14 text-sm border rounded-md p-1.5 text-center" @keyup.enter="jumpToPageHandler" />
+            <span class="text-sm">of {{ pagination.totalPages }}</span>
+            <button @click="jumpToPageHandler" class="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 rounded-md">
+              Go
+            </button>
+          </div>
+
+          <div class="flex items-center space-x-2">
+            <label for="pageSize" class="text-sm">Items per page:</label>
+            <select id="pageSize" v-model="pageSize" @change="changePageSize"
+              class="text-sm border rounded-md p-1.5 bg-white dark:bg-gray-800">
+              <option value="5">5</option>
+              <option value="10">10</option>
+              <option value="25">25</option>
+              <option value="50">50</option>
+              <option value="100">100</option>
+            </select>
+          </div>
+        </div>
+
+        <button @click="changePage(currentPage + 1)" :disabled="currentPage >= pagination.totalPages"
+          class="px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 rounded-md disabled:opacity-50 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors shadow-sm">
+          <span class="flex items-center">
+            Next
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+          </span>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const { createApp, ref, computed, onMounted } = Vue;
+
+    createApp({
+      setup() {
+        const packages = ref([]);
+        const loading = ref(true);
+        const error = ref(null);
+        const expandedPackages = ref([]);
+        const currentPage = ref(1);
+        const pageSize = ref(10);
+        const pagination = ref({
+          page: 1,
+          pageSize: 10,
+          totalItems: 0,
+          totalPages: 0
+        });
+        const jumpToPage = ref(1);
+
+        const fetchPackages = async (page = 1, pageSize = 10) => {
+          loading.value = true;
+          error.value = null;
+
+          try {
+            const response = await fetch(`/api/v1/packages?page=${page}&pageSize=${pageSize}`);
+
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            if (!result.success) {
+              throw new Error(result.error || 'Failed to fetch packages');
+            }
+
+            packages.value = result.data.data;
+            pagination.value = result.data.pagination;
+          } catch (err) {
+            error.value = `Failed to fetch packages: ${err.message}`;
+          } finally {
+            loading.value = false;
+          }
+        };
+
+        const changePage = (page) => {
+          if (page < 1 || page > pagination.value.totalPages) {
+            return;
+          }
+
+          currentPage.value = page;
+          fetchPackages(page, pageSize.value);
+          // Reset expanded packages when changing page
+          expandedPackages.value = [];
+        };
+
+        const changePageSize = () => {
+          currentPage.value = 1; // Reset to first page when changing page size
+          fetchPackages(currentPage.value, pageSize.value);
+        };
+
+        const togglePackage = (packageId) => {
+          const index = expandedPackages.value.indexOf(packageId);
+          if (index === -1) {
+            expandedPackages.value.push(packageId);
+          } else {
+            expandedPackages.value.splice(index, 1);
+          }
+        };
+
+        const isPackageExpanded = (packageId) => {
+          return expandedPackages.value.includes(packageId);
+        };
+
+        const refreshPackages = () => {
+          fetchPackages();
+        };
+
+        const deletePackage = async (packageName) => {
+          if (!confirm(`Are you sure you want to delete package "${packageName}"?`)) {
+            return;
+          }
+
+          try {
+            const response = await fetch(`/api/v1/packages/${packageName}`, {
+              method: 'DELETE'
+            });
+
+            if (!response.ok) {
+              throw new Error(`Error deleting package: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            if (!result.success) {
+              throw new Error(result.error || 'Failed to delete package');
+            }
+
+            // Refresh packages after deletion
+            fetchPackages();
+          } catch (err) {
+            error.value = err.message;
+            console.error('Error deleting package:', err);
+          }
+        };
+
+        const resubmitPackage = async (packageName) => {
+          if (!packageName) return;
+
+          try {
+            const response = await fetch(`/api/v1/packages/${packageName}/resubmit`, {
+              method: 'POST'
+            });
+
+            if (!response.ok) {
+              throw new Error(`Error resubmitting package: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            if (!result.success) {
+              throw new Error(result.error || 'Failed to resubmit package');
+            }
+
+            alert(`Package "${packageName}" resubmitted successfully!`);
+          } catch (err) {
+            error.value = err.message;
+            console.error('Error resubmitting package:', err);
+          }
+        };
+
+        const reprocessPackage = async (packageName) => {
+          if (!packageName) return;
+
+          try {
+            loading.value = true;
+            const response = await fetch(`/api/v1/packages/${packageName}/redebrid`, {
+              method: 'POST'
+            });
+
+            if (!response.ok) {
+              throw new Error(`Error re-processing package: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            if (!result.success) {
+              throw new Error(result.error || 'Failed to re-process package');
+            }
+
+            alert(`Package "${packageName}" re-processed successfully!`);
+
+            // Refresh packages to show updated data
+            fetchPackages();
+          } catch (err) {
+            error.value = err.message;
+            console.error('Error re-processing package:', err);
+          } finally {
+            loading.value = false;
+          }
+        };
+
+        const jumpToPageHandler = () => {
+          if (jumpToPage.value < 1 || jumpToPage.value > pagination.value.totalPages) {
+            return;
+          }
+          changePage(jumpToPage.value);
+        };
+
+        // Format file size to human-readable format with 2 decimal places for GB
+        const formatFileSize = (bytes) => {
+          if (!bytes || isNaN(bytes)) return 'Unknown';
+
+          const GB = 1024 * 1024 * 1024;
+          if (bytes >= GB) {
+            return `${(bytes / GB).toFixed(2)} GB`;
+          }
+
+          const MB = 1024 * 1024;
+          if (bytes >= MB) {
+            return `${(bytes / MB).toFixed(2)} MB`;
+          }
+
+          const KB = 1024;
+          if (bytes >= KB) {
+            return `${(bytes / KB).toFixed(0)} KB`;
+          }
+
+          return `${bytes} bytes`;
+        };
+
+        // Calculate total size of package from all files
+        const calculateTotalSize = (pkg) => {
+          if (!pkg.files || !pkg.files.results || !Array.isArray(pkg.files.results)) {
+            return 0;
+          }
+
+          return pkg.files.results.reduce((total, file) => {
+            return total + (file.filesize || 0);
+          }, 0);
+        };
+
+        // Format processing time
+        const formatProcessingTime = (ms) => {
+          if (!ms || isNaN(ms)) return '';
+
+          if (ms < 1000) {
+            return `${ms}ms`;
+          }
+
+          return `${(ms / 1000).toFixed(2)}s`;
+        };
+
+        // Convert UTC time to local time
+        const formatLocalTime = (utcTimeString) => {
+          if (!utcTimeString) return '';
+
+          try {
+            const date = new Date(utcTimeString);
+            return date.toLocaleTimeString() + ' ' + date.toLocaleDateString();
+          } catch (err) {
+            return utcTimeString;
+          }
+        };
+
+        onMounted(() => {
+          fetchPackages();
+        });
+
+        return {
+          packages,
+          loading,
+          error,
+          pagination,
+          currentPage,
+          pageSize,
+          jumpToPage,
+          expandedPackages,
+
+          // Methods
+          fetchPackages,
+          refreshPackages,
+          changePage,
+          changePageSize,
+          jumpToPageHandler,
+          togglePackage,
+          isPackageExpanded,
+          deletePackage,
+          resubmitPackage,
+          reprocessPackage,
+          calculateTotalSize,
+          formatFileSize,
+          formatLocalTime,
+          formatProcessingTime
+        };
+      }
+    }).mount('#packagesApp');
+  });
+</script>

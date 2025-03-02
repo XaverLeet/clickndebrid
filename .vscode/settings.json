@@ -1,0 +1,44 @@
+{
+  "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "files.exclude": {
+    "**/.git": true,
+    "**/.DS_Store": true,
+    "node_modules": true,
+    "dist": false
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true
+  },
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "javascript.updateImportsOnFileMove.enabled": "always",
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode",
+    "editor.suggestSelection": "recentlyUsed",
+    "editor.suggest.showKeywords": false
+  },
+  "files.associations": {
+    "docker-compose*.yml": "dockercompose",
+    "Dockerfile*": "dockerfile"
+  },
+  "remote.containers.defaultExtensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"],
+  "debug.javascript.terminalOptions": {
+    "skipFiles": ["<node_internals>/**"]
+  },
+  "npm.packageManager": "npm",
+  "[dockerfile]": {
+    "editor.defaultFormatter": "ms-azuretools.vscode-docker"
+  },
+  "[dotenv]": {
+    "editor.defaultFormatter": "foxundermoon.shell-format"
+  },
+  "[ignore]": {
+    "editor.defaultFormatter": "foxundermoon.shell-format"
+  }
+}

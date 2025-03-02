@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en" class="dark-theme">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>
+    <%= title %>
+  </title>
+  <link rel="stylesheet" href="/css/styles.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    // Configure Tailwind
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: 'var(--color-primary)',
+            secondary: 'var(--color-secondary)',
+            accent: 'var(--color-accent)',
+            text: 'var(--color-text)',
+            bg: 'var(--color-bg)',
+            card: 'var(--color-card)',
+            border: 'var(--color-border)'
+          }
+        }
+      }
+    }
+  </script>
+</head>
+
+<body class="min-h-screen">
+  <!-- Header -->
+  <header class="bg-opacity-50 backdrop-filter backdrop-blur-lg fixed w-full z-10">
+    <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+      <div class="flex items-center space-x-4">
+        <a href="/admin" class="flex items-center">
+          <img src="/img/logo.svg" alt="click'n'debrid" class="h-10 w-10">
+          <span class="ml-3 text-xl font-bold">click'n'debrid</span>
+        </a>
+      </div>
+
+      <nav class="hidden md:flex space-x-4">
+        <a href="/admin" class="nav-link <%= activeMenu === 'packages' ? 'active' : '' %>">Packages</a>
+        <a href="/admin/about" class="nav-link <%= activeMenu === 'about' ? 'active' : '' %>">About</a>
+      </nav>
+
+      <!-- Theme Toggle -->
+      <div class="flex items-center">
+        <a href="https://github.com/XaverLeet/clickndebrid" target="_blank"
+          class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors" title="View on GitHub">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="github-icon">
+            <path
+              d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22">
+            </path>
+          </svg>
+        </a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Mobile navigation -->
+  <div class="md:hidden fixed bottom-0 left-0 right-0 bg-opacity-50 backdrop-filter backdrop-blur-lg z-10">
+    <div class="flex justify-around py-3">
+      <a href="/admin" class="flex flex-col items-center <%= activeMenu === 'packages' ? 'text-primary' : '' %>">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+        </svg>
+        <span class="text-xs mt-1">Packages</span>
+      </a>
+      <a href="/admin/about" class="flex flex-col items-center <%= activeMenu === 'about' ? 'text-primary' : '' %>">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <span class="text-xs mt-1">About</span>
+      </a>
+      <a href="https://github.com/XaverLeet/clickndebrid" target="_blank" class="flex flex-col items-center"
+        title="View on GitHub">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 github-icon" fill="none" viewBox="0 0 24 24"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path
+            d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22">
+          </path>
+        </svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- Main Content -->
+  <main class="container mx-auto px-4 py-20">
+    <%- body %>
+  </main>
+
+  <!-- Footer -->
+  <footer class="py-6 text-center text-sm opacity-75 mt-10">
+    <p>
+      click'n'debrid v<%= version %> is licensed under the GPL 3.0. Find the source on <a
+          href="https://github.com/XaverLeet/clickndebrid" target="_blank">GitHub</a>.
+    </p>
+  </footer>
+
+  <!-- Vue.js -->
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+
+  <!-- Page specific scripts -->
+  <% if (typeof pageScript !=='undefined' ) { %>
+    <script src="<%= pageScript %>"></script>
+    <% } %>
+</body>
+
+</html>

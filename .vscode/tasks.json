@@ -1,0 +1,187 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Build TypeScript",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "build"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "clear": true
+      },
+      "problemMatcher": ["$tsc"]
+    },
+    {
+      "label": "Start Dev Container",
+      "type": "shell",
+      "command": "docker",
+      "args": [
+        "compose",
+        "-f",
+        ".devcontainer/docker-compose.yml",
+        "up",
+        "--build",
+        "-d",
+        "--force-recreate"
+      ],
+      "isBackground": true,
+      "problemMatcher": [],
+      "presentation": {
+        "reveal": "always",
+        "panel": "new",
+        "clear": true
+      }
+    },
+    {
+      "label": "Stop Dev Container",
+      "type": "shell",
+      "command": "docker",
+      "args": ["compose", "-f", ".devcontainer/docker-compose.yml", "down"],
+      "problemMatcher": []
+    },
+    {
+      "label": "Start Debug in Container",
+      "type": "shell",
+      "command": "docker",
+      "args": [
+        "compose",
+        "-f",
+        ".devcontainer/docker-compose.yml",
+        "exec",
+        "app",
+        "npm",
+        "run",
+        "debug"
+      ],
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": [
+          {
+            "regexp": "^([^\\s].*)\\((\\d+,\\d+)\\):\\s*(.*)$",
+            "file": 1,
+            "location": 2,
+            "message": 3
+          }
+        ],
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "^.*Debugger listening on.*$"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "dependsOn": ["Start Dev Container"]
+    },
+    {
+      "label": "Start Debug in Container (Break)",
+      "type": "shell",
+      "command": "docker",
+      "args": [
+        "compose",
+        "-f",
+        ".devcontainer/docker-compose.yml",
+        "exec",
+        "app",
+        "npm",
+        "run",
+        "debug-brk"
+      ],
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": [
+          {
+            "regexp": "^([^\\s].*)\\((\\d+,\\d+)\\):\\s*(.*)$",
+            "file": 1,
+            "location": 2,
+            "message": 3
+          }
+        ],
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "^.*Debugger listening on.*$"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "dependsOn": ["Start Dev Container"]
+    },
+    {
+      "label": "Debug Local",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "debug"],
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": [
+          {
+            "regexp": "^([^\\s].*)\\((\\d+,\\d+)\\):\\s*(.*)$",
+            "file": 1,
+            "location": 2,
+            "message": 3
+          }
+        ],
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "^.*Debugger listening on.*$"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "options": {
+        "env": {
+          "NODE_ENV": "development"
+        }
+      }
+    },
+    {
+      "label": "Debug Local (Break)",
+      "type": "shell",
+      "command": "npm",
+      "args": ["run", "debug-brk"],
+      "isBackground": true,
+      "problemMatcher": {
+        "pattern": [
+          {
+            "regexp": "^([^\\s].*)\\((\\d+,\\d+)\\):\\s*(.*)$",
+            "file": 1,
+            "location": 2,
+            "message": 3
+          }
+        ],
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".*",
+          "endsPattern": "^.*Debugger listening on.*$"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": true
+      },
+      "options": {
+        "env": {
+          "NODE_ENV": "development"
+        }
+      }
+    }
+  ]
+}

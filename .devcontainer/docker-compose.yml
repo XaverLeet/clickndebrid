@@ -1,0 +1,30 @@
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - ..:/workspace:cached
+      - node_modules:/workspace/node_modules
+    command: >
+      sh -c "cd /workspace && 
+             sudo chown -R node:node /workspace/node_modules &&
+             npm install && 
+             sleep infinity"
+    user: node
+    ports:
+      - "9666:9666"
+      - "9229:9229" # Debug port
+    env_file:
+      - .env
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - ./container_data/redis:/data
+volumes:
+  node_modules:

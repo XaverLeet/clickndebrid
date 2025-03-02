@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background Circle -->
+  <circle cx="100" cy="100" r="95" fill="#1a202c" stroke="#4c51bf" stroke-width="5"/>
+  
+  <!-- Cloud Shape - Centered -->
+  <path d="M55,100 C55,80 70,65 90,65 C110,65 120,75 125,85 C135,75 150,80 155,90 C165,85 175,95 175,105 C175,120 160,130 145,130 L70,130 C55,130 40,120 40,105 C40,90 50,80 55,100 Z" fill="#4c51bf"/>
+  
+  <!-- Down Arrow - Centered -->
+  <path d="M85,85 L105,85 L105,105 L115,105 L95,125 L75,105 L85,105 Z" fill="#e2e8f0"/>
+  
+  <!-- Chain Link - Centered -->
+  <path d="M120,110 C125,105 130,105 135,110 C140,115 140,120 135,125 C130,130 125,130 120,125 C115,120 115,115 120,110 Z" fill="#e2e8f0"/>
+  <path d="M110,120 C105,125 105,130 110,135 C115,140 120,140 125,135 C130,130 130,125 125,120 C120,115 115,115 110,120 Z" fill="#e2e8f0"/>
+</svg>
