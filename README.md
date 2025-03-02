@@ -60,7 +60,6 @@ docker build -t clickndebrid .
 docker run --rm -p 127.0.0.1:9666:9666 \
   -e CND_REALDEBRID_APITOKEN=YOUR_API_TOKEN \
   -e CND_DESTINATION_URL=http://192.168.1.1:9666 \
-  -e CND_PORT=9666 \
   clickndebrid
 ```
 
@@ -111,14 +110,15 @@ services:
 | ------------------------- | ---------------------------------------- | --------------------------- |
 | `NODE_ENV`                | Node.js environment                      | `development`               |
 | `CND_DEBRIDSERVICE`       | Debrid service to use (e.g., realdebrid) | `realdebrid`                |
-| `CND_REALDEBRID_APITOKEN` | Real-Debrid API token                    | _Required_                  |
-| `CND_DESTINATION_URL`     | URL of the Click'n'Load server           | _Required_                  |
+| `CND_REALDEBRID_APITOKEN` | Real-Debrid API token                    | _required_                  |
+| `CND_DESTINATION_URL`     | URL of the Click'n'Load server           | _required_                  |
 | `CND_PORT`                | Port for the server                      | `9666`                      |
 | `CND_REDIS_ENABLED`       | Enable Redis cache                       | `false`                     |
 | `CND_REDIS_URL`           | Redis server URL                         | `redis://localhost:6379`    |
+| `CND_REDIS_USERNAME`      | Redis username                           |                             |
+| `CND_REDIS_PASSWORD`      | Redis password                           |                             |
+| `CND_REDIS_TTL`           | Time-To-Live for cached object           |  360000                     |
 | `CND_LOG_LEVEL`           | Logging level (debug, info, warn, error) | `info`                      |
-| `CND_ADMIN_USERNAME`      | Admin username                           | _Required for admin access_ |
-| `CND_ADMIN_PASSWORD`      | Admin password                           | _Required for admin access_ |
 
 ### Configuration Methods
 
@@ -143,9 +143,9 @@ services:
 Access the admin interface at `/admin` to:
 
 - View all packages
-- Process packages on demand
 - Delete packages
-- View processing results
+- Re-Process packages with debrid service
+- Re-Submit packages to your download manager
 
 ## Development
 
