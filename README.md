@@ -15,7 +15,14 @@ A modern Node.js [Click'n'Load](https://jdownloader.org/knowledge/wiki/glossary/
 - **Admin Dashboard**: Modern web interface for package management
 - **Responsive Design**: Dark-themed UI with Tailwind CSS
 - **Flexible Storage**: Redis or in-memory caching
-- **Secure**: Authentication for admin interface access
+
+## Key Benefits
+
+- **Automatic Processing**: No manual copy-pasting of links between services
+- **Premium Features**: Get full download speeds without site restrictions
+- **Centralized Management**: View all packages and their processing status in the admin UI
+- **Self-Hosted**: Complete control over your data and downloads
+- **Extensible**: Support for multiple debrid services (currently Real-Debrid, more planned)
 
 ## Prerequisites
 
@@ -119,26 +126,7 @@ services:
 2. **Dotenv File**: Create a `.env` file based on `.env.example`
 3. **Docker Environment**: Pass as environment variables to Docker
 
-## Usage
-
-### Click'n'Load Integration
-
-ClicknDebrid acts as a proxy between websites offering Click'n'Load and your download manager:
-
-```mermaid
-flowchart LR
-    User((User)) -->|Clicks CNL Button| Website[Website]
-    Website -->|Encrypted Package| ClicknDebrid[ClicknDebrid]
-    ClicknDebrid -->|1. Decrypt| ClicknDebrid
-    ClicknDebrid -->|2. Send Links| DebridAPI[Debrid API]
-    DebridAPI -->|Unrestricted Links| ClicknDebrid
-    ClicknDebrid -->|3. Forward Links| PyLoad[Download Manager]
-    ClicknDebrid -->|4. Store Data| Redis[(Cache)]
-    User -->|Manage Packages| AdminUI[Admin UI]
-    AdminUI -.-> Redis
-```
-
-#### How It Works
+## Usage & How It Works
 
 1. **Interception**: When a user clicks a Click'n'Load button on a website, instead of sending the encrypted package to the default CNL port (9666), it's sent to ClicknDebrid running on the same port.
 
@@ -150,15 +138,7 @@ flowchart LR
 
 5. **Storage**: Package information and processing results are stored in Redis (or memory cache if Redis is disabled) for management via the admin interface.
 
-#### Key Benefits
-
-- **Automatic Processing**: No manual copy-pasting of links between services
-- **Premium Features**: Get full download speeds without site restrictions
-- **Centralized Management**: View all packages and their processing status in the admin UI
-- **Self-Hosted**: Complete control over your data and downloads
-- **Extensible**: Support for multiple debrid services (currently Real-Debrid, more planned)
-
-### Admin Interface
+## Admin Interface
 
 Access the admin interface at `/admin` to:
 
@@ -190,10 +170,6 @@ npm run lint
 
 See [Architecture Documentation](./docs/architecture.md) for details on the project structure and components.
 
-## Changelog
-
-See [CHANGELOG.md](./CHANGELOG.md) for details on what has changed in each version.
-
 ## Contributing
 
 1. Fork the repository
@@ -201,17 +177,6 @@ See [CHANGELOG.md](./CHANGELOG.md) for details on what has changed in each versi
 3. Commit your changes using conventional commits: `git commit -m "feat: add amazing feature"`
 4. Push to the branch: `git push origin feature/amazing-feature`
 5. Open a Pull Request
-
-### Documentation Standards
-
-When contributing to this project, please follow these documentation standards:
-
-- **Code Documentation**: Use JSDoc comments for functions, classes, and interfaces
-- **README**: Keep the README updated with any new features or configuration options
-- **Architecture**: Update architecture documentation when making significant changes
-- **Type Definitions**: Ensure all types are properly documented with comments
-
-The codebase uses TypeScript with strict type checking, which already provides some self-documentation through types.
 
 ## License
 
