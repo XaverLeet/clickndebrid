@@ -6,6 +6,7 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc && tsx scripts/copy-public.ts",
+    "build:skip-tests": "tsc --skipLibCheck && tsx scripts/copy-public.ts",
     "start": "node dist/index.js",
     "dev": "nodemon --watch 'src/**/*.ts' --exec 'tsx' src/index.ts",
     "debug": "tsx --inspect=${DEBUG_PORT:-0.0.0.0:9229} src/index.ts",
