@@ -4,7 +4,7 @@ import { LoggerService, LogMetadata as _LogMetadata, Config as _Config } from ".
 import { config as _config } from "../config/index.js";
 
 // Internal implementation
-class WinstonLoggerService implements LoggerService {
+export class WinstonLoggerService implements LoggerService {
   private static _instance: WinstonLoggerService;
   private _logger: winston.Logger;
 

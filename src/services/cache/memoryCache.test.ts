@@ -1,18 +1,14 @@
-import { MemoryCache } from "./memoryCache";
-import { LoggerService } from "../loggerService";
+import { MemoryCache } from "./memoryCache.js";
+import { loggerService } from "../loggerService.js";
 
 // Mock dependencies
-jest.mock("../loggerService");
+jest.mock("../loggerService.js");
 
 describe("MemoryCache", () => {
   let memoryCache: MemoryCache;
-  let mockLoggerService: jest.Mocked<LoggerService>;
 
   beforeEach(() => {
     jest.clearAllMocks();
-
-    // Setup mocks
-    mockLoggerService = LoggerService.getInstance() as jest.Mocked<LoggerService>;
 
     // Create fresh instance for each test
     memoryCache = new MemoryCache();
@@ -31,7 +27,7 @@ describe("MemoryCache", () => {
 
       const value = await memoryCache.get<string>("test-key");
       expect(value).toBe("test-value");
-      expect(mockLoggerService.debug).toHaveBeenCalled();
+      expect(loggerService.debug).toHaveBeenCalled();
     });
 
     it("should store object values", async () => {
@@ -81,12 +77,12 @@ describe("MemoryCache", () => {
 
       await memoryCache.delete("delete-key");
       expect(await memoryCache.exists("delete-key")).toBe(false);
-      expect(mockLoggerService.debug).toHaveBeenCalled();
+      expect(loggerService.debug).toHaveBeenCalled();
     });
 
     it("should handle non-existent keys", async () => {
       await memoryCache.delete("not-exists");
-      expect(mockLoggerService.debug).toHaveBeenCalled();
+      expect(loggerService.debug).toHaveBeenCalled();
     });
   });
 

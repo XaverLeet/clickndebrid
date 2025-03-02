@@ -142,21 +142,21 @@ export class RedisCache implements CacheInterface {
   /**
    * Get multiple values from Redis
    * @param keys List of keys to get
-   * @returns Map of key-value pairs
+   * @returns Object with key-value pairs
    */
-  async getMultiple<T>(keys: string[]): Promise<Map<string, T | null>> {
+  async getMultiple<T>(keys: string[]): Promise<Record<string, T | null>> {
     if (!config.redis.enabled) {
-      loggerService.debug("Redis is not available, returning empty map");
-      return new Map();
+      loggerService.debug("Redis is not available, returning empty object");
+      return {};
     }
 
-    const result = new Map<string, T | null>();
+    const result: Record<string, T | null> = {};
 
     try {
       // Process each key individually since we don't have direct MGET support in our wrapper
       for (const key of keys) {
         const value = await redisClient.get<T>(key);
-        result.set(key, value);
+        result[key] = value;
       }
 
       return result;
@@ -168,8 +168,10 @@ export class RedisCache implements CacheInterface {
 
   /**
    * Set multiple values in Redis
+   * @param entries Object with key-value pairs
+   * @param ttl Optional TTL in seconds
    */
-  async setMultiple<T>(entries: Map<string, T>, ttl?: number): Promise<void> {
+  async setMultiple<T>(entries: Record<string, T>, ttl?: number): Promise<void> {
     if (!config.redis.enabled) {
       loggerService.debug("Redis is not available, skipping setMultiple operation");
       return;
@@ -177,12 +179,12 @@ export class RedisCache implements CacheInterface {
 
     try {
       // Process each entry individually since we don't have direct MSET support in our wrapper
-      for (const [key, value] of entries.entries()) {
+      for (const [key, value] of Object.entries(entries)) {
         await redisClient.set(key, value, ttl);
       }
 
       loggerService.debug("Stored multiple values in Redis cache", {
-        count: entries.size,
+        count: Object.keys(entries).length,
       });
     } catch (error) {
       loggerService.error("Failed to store multiple values in Redis cache", {

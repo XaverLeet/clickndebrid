@@ -1,48 +1,62 @@
-import { CnlService } from "./cnlService";
-import { CryptoService } from "./cryptoService";
-import { LoggerService } from "./loggerService";
-import { CnlData } from "../types/cnl";
-import * as config from "../config";
+import { cnlService } from "./cnlService.js";
+import { cryptoService } from "./cryptoService.js";
+import { loggerService } from "./loggerService.js";
+import { config } from "../config/index.js";
 
 // Mock dependencies
 jest.mock("./cryptoService");
 jest.mock("./loggerService");
-jest.mock("../config", () => ({
-  cnl: {
-    destination: {
-      url: "https://example.com/endpoint",
-    },
+jest.mock("../config/index.js", () => ({
+  config: {
+    destinationUrl: "https://example.com/endpoint",
   },
 }));
 
 // Mock global fetch
-global.fetch = jest.fn();
+global.fetch = jest.fn() as jest.Mock;
 
 describe("CnlService", () => {
-  let cnlService: CnlService;
-  let mockCryptoService: jest.Mocked<CryptoService>;
-  let mockLoggerService: jest.Mocked<LoggerService>;
-
   beforeEach(() => {
     jest.clearAllMocks();
 
-    // Setup mocks
-    mockCryptoService = CryptoService.getInstance() as jest.Mocked<CryptoService>;
-    mockLoggerService = LoggerService.getInstance() as jest.Mocked<LoggerService>;
-
-    mockCryptoService.encrypt.mockImplementation((data: string) => `encrypted-${data}`);
+    // Setup mocks for the imported services
+    jest.spyOn(cryptoService, "encrypt").mockImplementation((data) => ({
+      ...data,
+      isEncrypted: true,
+    }));
 
     // Reset fetch mock
     (global.fetch as jest.Mock).mockReset();
-
-    cnlService = CnlService.getInstance();
   });
 
   describe("submitToDestinationService", () => {
-    const validCnlData: CnlData = {
+    const validCnlData = {
       source: "test-source",
-      urls: ["http://example.com/file1.zip"],
-      processedLinks: ["http://debrid.example.com/resolved1.zip"],
+      crypted: "encrypted-data",
+      jk: "jk-value",
+      passwords: "password",
+      package: "package-name",
+      files: {
+        results: [
+          {
+            original: "http://example.com/file1.zip",
+            processed: "http://debrid.example.com/resolved1.zip",
+            success: true,
+            processedAt: new Date().toISOString(),
+          },
+        ],
+        stats: {
+          processedAt: new Date().toISOString(),
+          debridService: "TestDebrid",
+          totalLinks: 1,
+          validLinks: 1,
+          skippedLinks: 0,
+          successCount: 1,
+          failureCount: 0,
+          successRate: 100,
+          processingTimeMs: 120,
+        },
+      },
     };
 
     it("should encrypt and submit processed links to destination", async () => {
@@ -50,40 +64,56 @@ describe("CnlService", () => {
       (global.fetch as jest.Mock).mockResolvedValueOnce({
         ok: true,
         status: 200,
-        json: jest.fn().mockResolvedValueOnce({ success: true }),
+        headers: new Map(),
+        statusText: "OK",
+      });
+
+      // Setup crypto mock
+      jest.spyOn(cryptoService, "encrypt").mockReturnValueOnce({
+        ...validCnlData,
+        crypted: "encrypted-result",
       });
 
       // Call method
       const result = await cnlService.submitToDestinationService(validCnlData);
 
       // Assertions
-      expect(result).toBe(true);
-      expect(mockCryptoService.encrypt).toHaveBeenCalledWith(
-        JSON.stringify(validCnlData.processedLinks)
-      );
+      expect(result).toBe("encrypted-result");
+      expect(cryptoService.encrypt).toHaveBeenCalled();
       expect(global.fetch).toHaveBeenCalledWith(
-        config.cnl.destination.url,
+        `${config.destinationUrl}/flash/addcrypted2`,
         expect.objectContaining({
           method: "POST",
           headers: expect.objectContaining({
-            "Content-Type": "application/json",
+            "Content-Type": "application/x-www-form-urlencoded",
           }),
           body: expect.any(String),
         })
       );
-      expect(mockLoggerService.info).toHaveBeenCalled();
+      expect(loggerService.info).toHaveBeenCalled();
     });
 
     it("should return false when there are no processed links", async () => {
-      const noLinksData: CnlData = {
+      const noLinksData = {
         ...validCnlData,
-        processedLinks: [],
+        files: {
+          results: [],
+          stats: {
+            processedAt: new Date().toISOString(),
+            debridService: "TestDebrid",
+            totalLinks: 0,
+            validLinks: 0,
+            skippedLinks: 0,
+            successCount: 0,
+            failureCount: 0,
+            successRate: 0,
+            processingTimeMs: 10,
+          },
+        },
       };
 
-      const result = await cnlService.submitToDestinationService(noLinksData);
-
-      expect(result).toBe(false);
-      expect(mockLoggerService.warn).toHaveBeenCalled();
+      await expect(cnlService.submitToDestinationService(noLinksData)).rejects.toThrow();
+      expect(loggerService.error).toHaveBeenCalled();
       expect(global.fetch).not.toHaveBeenCalled();
     });
 
@@ -91,10 +121,14 @@ describe("CnlService", () => {
       // Setup fetch to throw error
       (global.fetch as jest.Mock).mockRejectedValueOnce(new Error("Network error"));
 
-      const result = await cnlService.submitToDestinationService(validCnlData);
+      // Setup crypto mock
+      jest.spyOn(cryptoService, "encrypt").mockReturnValueOnce({
+        ...validCnlData,
+        crypted: "encrypted-result",
+      });
 
-      expect(result).toBe(false);
-      expect(mockLoggerService.error).toHaveBeenCalled();
+      await expect(cnlService.submitToDestinationService(validCnlData)).rejects.toThrow();
+      expect(loggerService.error).toHaveBeenCalled();
     });
 
     it("should handle non-ok responses from destination service", async () => {
@@ -103,12 +137,17 @@ describe("CnlService", () => {
         ok: false,
         status: 500,
         statusText: "Internal Server Error",
+        headers: new Map(),
       });
 
-      const result = await cnlService.submitToDestinationService(validCnlData);
+      // Setup crypto mock
+      jest.spyOn(cryptoService, "encrypt").mockReturnValueOnce({
+        ...validCnlData,
+        crypted: "encrypted-result",
+      });
 
-      expect(result).toBe(false);
-      expect(mockLoggerService.error).toHaveBeenCalled();
+      await expect(cnlService.submitToDestinationService(validCnlData)).rejects.toThrow();
+      expect(loggerService.error).toHaveBeenCalled();
     });
   });
 });

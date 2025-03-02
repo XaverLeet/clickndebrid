@@ -168,6 +168,46 @@ export class MemoryCache implements CacheInterface {
   }
 
   /**
+   * Get multiple values from the cache
+   * @param keys List of keys to get
+   * @returns Object with key-value pairs
+   */
+  async getMultiple<T>(keys: string[]): Promise<Record<string, T | null>> {
+    const result: Record<string, T | null> = {};
+
+    try {
+      for (const key of keys) {
+        result[key] = await this.get<T>(key);
+      }
+
+      return result;
+    } catch (error) {
+      loggerService.error("Failed to retrieve multiple values from memory cache", { keys, error });
+      return result;
+    }
+  }
+
+  /**
+   * Set multiple values in the cache
+   * @param entries Object with key-value pairs
+   * @param ttl Optional TTL in seconds
+   */
+  async setMultiple<T>(entries: Record<string, T>, ttl?: number): Promise<void> {
+    try {
+      for (const [key, value] of Object.entries(entries)) {
+        await this.set(key, value, ttl);
+      }
+
+      loggerService.debug("Stored multiple values in memory cache", {
+        count: Object.keys(entries).length,
+      });
+    } catch (error) {
+      loggerService.error("Failed to store multiple values in memory cache", { error });
+      throw error;
+    }
+  }
+
+  /**
    * Convert Redis-style pattern to RegExp
    * @private
    */
