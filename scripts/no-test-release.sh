@@ -45,7 +45,7 @@ echo "Creating $RELEASE_TYPE release..."
 npm run "release:$RELEASE_TYPE" -- --no-git.requireCleanWorkingDir
 
 # Get the new version
-NEW_VERSION=$(node -p "import('./package.json', { assert: { type: 'json' } }).then(pkg => console.log(pkg.default.version))")
+NEW_VERSION=$(node -e "console.log(require('./package.json').version)")
 
 # Push changes and tags
 echo "Pushing changes and tags..."
