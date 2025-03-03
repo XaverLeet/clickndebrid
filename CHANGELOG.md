@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.5 (2025-03-03)
+
+### Changes
+
+- build: don't use husky in production (b4fd900)
+
 ## 1.1.4 (2025-03-03)
 
 ### Changes
