@@ -121,9 +121,20 @@ PRE_RELEASE_VERSION=$(jq -r ".version" package.json)
 # Try running release-it
 echo "Creating $RELEASE_TYPE release..."
 RELEASE_SUCCESS=0
-npm run "release:$RELEASE_TYPE" -- --no-npm || {
+
+# Force a change to ensure release-it has something to commit
+if [ "$RELEASE_TYPE" = "major" ] || [ "$RELEASE_TYPE" = "minor" ] || [ "$RELEASE_TYPE" = "patch" ]; then
+  # Update version in package.json to force a change
+  npm version "$RELEASE_TYPE" --no-git-tag-version
+  # Only try release-it if we successfully made a version change
+  npm run "release:$RELEASE_TYPE" -- --no-npm || {
+    RELEASE_SUCCESS=1
+    echo "Release process failed with release-it. Performing manual version update..."
+  }
+else
   RELEASE_SUCCESS=1
-  echo "Release process failed with release-it. Performing manual version update..."
+  echo "Skipping release-it and performing manual version update..."
+fi
   
   # Calculate the next version based on the release type
   IFS='.' read -r -a version_parts <<< "$PRE_RELEASE_VERSION"
