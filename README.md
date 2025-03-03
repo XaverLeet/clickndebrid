@@ -5,6 +5,7 @@
 [![Node.js](https://img.shields.io/badge/Node.js-23.x-green)](https://nodejs.org/)
 [![Express](https://img.shields.io/badge/Express-4.18-lightgrey)](https://expressjs.com/)
 [![Redis](https://img.shields.io/badge/Redis-Optional-red)](https://redis.io/)
+[![Docker](https://img.shields.io/badge/Docker-Available-blue)](https://github.com/XaverLeet/clickndebrid/pkgs/container/clickndebrid)
 
 A modern Node.js [Click'n'Load](https://jdownloader.org/knowledge/wiki/glossary/cnl2) proxy server that converts links via debrid services and forwards them to download managers. ClicknDebrid sits between file hosting sites and your download manager, automatically processing links through premium debrid services to unlock faster downloads without captchas or speed limits.
 
@@ -50,7 +51,24 @@ npm start
 
 ### Using Docker
 
-#### Single Container
+#### Pre-built Image (Recommended)
+
+ClicknDebrid is available as a pre-built Docker image on GitHub Packages:
+
+```bash
+# Pull the image
+docker pull ghcr.io/xaverleet/clickndebrid:latest
+
+# Run the container
+docker run --rm -p 127.0.0.1:9666:9666 \
+  -e CND_REALDEBRID_APITOKEN=YOUR_API_TOKEN \
+  -e CND_DESTINATION_URL=http://192.168.1.1:9666 \
+  ghcr.io/xaverleet/clickndebrid:latest
+```
+
+#### Build from Source
+
+If you prefer to build the image yourself:
 
 ```bash
 # Build the image
@@ -70,13 +88,16 @@ docker run --rm -p 127.0.0.1:9666:9666 \
 docker compose up -d
 ```
 
-Find a docker-compose.yml example in the `docker-compose.yml` file.
+Find a docker-compose.yml example in the project repository. The default configuration uses the pre-built image:
 
 ```docker-compose.yml
 services:
   app:
-    build:
-      dockerfile: Dockerfile
+    # Use the pre-built image from GitHub Packages (recommended)
+    image: ghcr.io/xaverleet/clickndebrid:latest
+    # Uncomment the following lines to build from source instead
+    # build:
+    #   dockerfile: Dockerfile
     restart: unless-stopped
     user: 1000:1000
     ports:

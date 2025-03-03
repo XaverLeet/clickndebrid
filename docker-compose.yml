@@ -1,7 +1,10 @@
 services:
   app:
-    build:
-      dockerfile: Dockerfile
+    # Use the pre-built image from GitHub Packages (recommended)
+    image: ghcr.io/xaverleet/clickndebrid:latest
+    # Uncomment the following lines to build from source instead
+    # build:
+    #   dockerfile: Dockerfile
     restart: unless-stopped
     user: 1000:1000
     ports:
