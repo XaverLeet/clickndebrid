@@ -52,7 +52,7 @@ fi
 
 # Create release
 echo "Creating $RELEASE_TYPE release..."
-npm run "release:$RELEASE_TYPE"
+npm run "release:$RELEASE_TYPE" -- --no-npm
 
 # Get the new version
 NEW_VERSION=$(node -p "require('./package.json').version")
