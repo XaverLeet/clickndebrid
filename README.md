@@ -26,7 +26,7 @@ A modern Node.js [Click'n'Load](https://jdownloader.org/knowledge/wiki/glossary/
 
 ## Prerequisites
 
-- Node.js 23.x
+- Node.js 20.x or higher
 - npm 10.x or higher
 - Redis (optional, for production use)
 
@@ -106,19 +106,19 @@ services:
 
 ### Environment Variables
 
-| Variable                  | Description                              | Default                     |
-| ------------------------- | ---------------------------------------- | --------------------------- |
-| `NODE_ENV`                | Node.js environment                      | `development`               |
-| `CND_DEBRIDSERVICE`       | Debrid service to use (e.g., realdebrid) | `realdebrid`                |
-| `CND_REALDEBRID_APITOKEN` | Real-Debrid API token                    | _required_                  |
-| `CND_DESTINATION_URL`     | URL of the Click'n'Load server           | _required_                  |
-| `CND_PORT`                | Port for the server                      | `9666`                      |
-| `CND_REDIS_ENABLED`       | Enable Redis cache                       | `false`                     |
-| `CND_REDIS_URL`           | Redis server URL                         | `redis://localhost:6379`    |
-| `CND_REDIS_USERNAME`      | Redis username                           |                             |
-| `CND_REDIS_PASSWORD`      | Redis password                           |                             |
-| `CND_REDIS_TTL`           | Time-To-Live for cached object           |  360000                     |
-| `CND_LOG_LEVEL`           | Logging level (debug, info, warn, error) | `info`                      |
+| Variable                  | Description                              | Default                  |
+| ------------------------- | ---------------------------------------- | ------------------------ |
+| `NODE_ENV`                | Node.js environment                      | `development`            |
+| `CND_DEBRIDSERVICE`       | Debrid service to use (e.g., realdebrid) | `realdebrid`             |
+| `CND_REALDEBRID_APITOKEN` | Real-Debrid API token                    | _required_               |
+| `CND_DESTINATION_URL`     | URL of the Click'n'Load server           | _required_               |
+| `CND_PORT`                | Port for the server                      | `9666`                   |
+| `CND_REDIS_ENABLED`       | Enable Redis cache                       | `false`                  |
+| `CND_REDIS_URL`           | Redis server URL                         | `redis://localhost:6379` |
+| `CND_REDIS_USERNAME`      | Redis username                           |                          |
+| `CND_REDIS_PASSWORD`      | Redis password                           |                          |
+| `CND_REDIS_TTL`           | Time-To-Live for cached object           | 360000                   |
+| `CND_LOG_LEVEL`           | Logging level (debug, info, warn, error) | `info`                   |
 
 ### Configuration Methods
 
