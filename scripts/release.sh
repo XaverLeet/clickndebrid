@@ -122,40 +122,52 @@ PRE_RELEASE_VERSION=$(jq -r ".version" package.json)
 echo "Creating $RELEASE_TYPE release..."
 RELEASE_SUCCESS=0
 
-# Force a change to ensure release-it has something to commit
-if [ "$RELEASE_TYPE" = "major" ] || [ "$RELEASE_TYPE" = "minor" ] || [ "$RELEASE_TYPE" = "patch" ]; then
-  # Update version in package.json to force a change
-  npm version "$RELEASE_TYPE" --no-git-tag-version
-  # Only try release-it if we successfully made a version change
-  npm run "release:$RELEASE_TYPE" -- --no-npm || {
-    RELEASE_SUCCESS=1
-    echo "Release process failed with release-it. Performing manual version update..."
-  }
+# Check if tag already exists - this is the most common issue
+NEXT_VERSION=""
+
+# Calculate the next version based on the release type
+IFS='.' read -r -a version_parts <<< "$CURRENT_VERSION"
+MAJOR="${version_parts[0]}"
+MINOR="${version_parts[1]}"
+PATCH="${version_parts[2]}"
+
+if [ "$RELEASE_TYPE" = "major" ]; then
+  MAJOR=$((MAJOR + 1))
+  MINOR=0
+  PATCH=0
+elif [ "$RELEASE_TYPE" = "minor" ]; then
+  MINOR=$((MINOR + 1))
+  PATCH=0
 else
-  RELEASE_SUCCESS=1
-  echo "Skipping release-it and performing manual version update..."
+  # Default is patch
+  PATCH=$((PATCH + 1))
 fi
-  
-  # Calculate the next version based on the release type
-  IFS='.' read -r -a version_parts <<< "$PRE_RELEASE_VERSION"
-  MAJOR="${version_parts[0]}"
-  MINOR="${version_parts[1]}"
-  PATCH="${version_parts[2]}"
-  
-  if [ "$RELEASE_TYPE" = "major" ]; then
-    MAJOR=$((MAJOR + 1))
-    MINOR=0
-    PATCH=0
-  elif [ "$RELEASE_TYPE" = "minor" ]; then
-    MINOR=$((MINOR + 1))
-    PATCH=0
-  else
-    # Default is patch
-    PATCH=$((PATCH + 1))
+
+NEXT_VERSION="$MAJOR.$MINOR.$PATCH"
+
+# Check if tag already exists for the target version
+if git tag | grep -q "v$NEXT_VERSION"; then
+  echo "Warning: Tag v$NEXT_VERSION already exists!"
+  echo "Would you like to force create the release anyway? This might cause issues. (y/N)"
+  read -r force_create
+  if [[ ! "$force_create" =~ ^[Yy]$ ]]; then
+    echo "Release creation cancelled by user."
+    exit 1
   fi
-  
-  NEW_VERSION="$MAJOR.$MINOR.$PATCH"
-  echo "Calculated new version: $NEW_VERSION"
+fi
+
+# Force a change to ensure release-it has something to commit
+# Update version in package.json to force a change
+npm version "$RELEASE_TYPE" --no-git-tag-version --allow-same-version
+
+# Try release-it
+npm run "release:$RELEASE_TYPE" -- --no-npm || {
+  RELEASE_SUCCESS=1
+  echo "Release process failed with release-it. Performing manual version update..."
+
+  # We already calculated the next version above
+  NEW_VERSION=$NEXT_VERSION
+  echo "Using version: $NEW_VERSION"
   
   # Update package.json with the new version
   jq ".version = \"$NEW_VERSION\"" package.json > package.json.tmp
@@ -193,8 +205,10 @@ fi
   # Attempt to commit - don't fail if nothing to commit
   git commit -m "chore: release v$NEW_VERSION" || true
   
-  # Create and push tag
-  git tag -a "v$NEW_VERSION" -m "Version $NEW_VERSION" || true
+  # Create and push tag - but only if it doesn't exist
+  if ! git tag | grep -q "v$NEW_VERSION"; then
+    git tag -a "v$NEW_VERSION" -m "Version $NEW_VERSION" || true
+  fi
 }
 
 # Get the new version if it wasn't set by our manual process
