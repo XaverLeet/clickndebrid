@@ -170,6 +170,28 @@ npm run lint
 
 See [Architecture Documentation](./docs/architecture.md) for details on the project structure and components.
 
+## Release Process
+
+The project uses release-it for versioning and GitHub releases:
+
+```bash
+# Release a new patch version
+npm run release:auto
+
+# Release a minor or major version
+npm run release:auto minor
+npm run release:auto major
+
+# Skip tests during release
+npm run release:auto -- --skip-tests
+```
+
+For automated GitHub releases, create a `.env.release` file with your GitHub token:
+
+```
+GITHUB_TOKEN=your_github_token_here
+```
+
 ## Contributing
 
 1. Fork the repository
