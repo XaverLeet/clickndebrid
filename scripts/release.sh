@@ -115,76 +115,81 @@ fi
 echo "Creating .version file for release-it..."
 echo "$CURRENT_VERSION" > .version
 
-# Create release
+# Save current version before running release-it
+PRE_RELEASE_VERSION=$(jq -r ".version" package.json)
+
+# Try running release-it
 echo "Creating $RELEASE_TYPE release..."
+RELEASE_SUCCESS=0
 npm run "release:$RELEASE_TYPE" -- --no-npm || {
-  echo "Release process failed. Checking if package.json was updated..."
+  RELEASE_SUCCESS=1
+  echo "Release process failed with release-it. Performing manual version update..."
   
-  # Check if package.json was updated but commit failed
-  NEW_VERSION=$(jq -r ".version" package.json)
-  if [ "$NEW_VERSION" != "$CURRENT_VERSION" ]; then
-    echo "Package.json was updated to version $NEW_VERSION but commit failed."
-    echo "Manually creating git tag and commit..."
-    
-    # Stage package.json and other modified files
-    git add package.json
-    git add CHANGELOG.md || true
-    
-    # Commit changes
-    git commit -m "chore: release v$NEW_VERSION" || echo "No changes to commit"
-    
-    # Create tag
-    git tag -a "v$NEW_VERSION" -m "Version $NEW_VERSION"
+  # Calculate the next version based on the release type
+  IFS='.' read -r -a version_parts <<< "$PRE_RELEASE_VERSION"
+  MAJOR="${version_parts[0]}"
+  MINOR="${version_parts[1]}"
+  PATCH="${version_parts[2]}"
+  
+  if [ "$RELEASE_TYPE" = "major" ]; then
+    MAJOR=$((MAJOR + 1))
+    MINOR=0
+    PATCH=0
+  elif [ "$RELEASE_TYPE" = "minor" ]; then
+    MINOR=$((MINOR + 1))
+    PATCH=0
   else
-    echo "No version change detected. Using current version: $CURRENT_VERSION"
-    NEW_VERSION=$CURRENT_VERSION
+    # Default is patch
+    PATCH=$((PATCH + 1))
   fi
+  
+  NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+  echo "Calculated new version: $NEW_VERSION"
+  
+  # Update package.json with the new version
+  jq ".version = \"$NEW_VERSION\"" package.json > package.json.tmp
+  mv package.json.tmp package.json
+  
+  # Update changelog if it exists
+  CHANGELOG_FILE="CHANGELOG.md"
+  if [ -f "$CHANGELOG_FILE" ]; then
+    TODAY=$(date +"%Y-%m-%d")
+    # Create a new changelog entry at the top, preserving existing content
+    TEMP_CHANGELOG=$(mktemp)
+    echo "# Changelog" > "$TEMP_CHANGELOG"
+    echo "" >> "$TEMP_CHANGELOG"
+    echo "## $NEW_VERSION ($TODAY)" >> "$TEMP_CHANGELOG"
+    echo "" >> "$TEMP_CHANGELOG"
+    echo "### Changes" >> "$TEMP_CHANGELOG"
+    echo "" >> "$TEMP_CHANGELOG"
+    
+    # Get commit messages since last tag
+    git log --pretty=format:"- %s (%h)" "v$PRE_RELEASE_VERSION"..HEAD | grep -v "chore: release" >> "$TEMP_CHANGELOG"
+    echo "" >> "$TEMP_CHANGELOG"
+    echo "" >> "$TEMP_CHANGELOG"
+    
+    # Append the rest of the original changelog, skipping the first line (# Changelog)
+    tail -n +2 "$CHANGELOG_FILE" >> "$TEMP_CHANGELOG"
+    
+    # Replace the original changelog
+    mv "$TEMP_CHANGELOG" "$CHANGELOG_FILE"
+  fi
+  
+  # Commit the version bump
+  git add package.json
+  git add "$CHANGELOG_FILE" 2>/dev/null || true
+  
+  # Attempt to commit - don't fail if nothing to commit
+  git commit -m "chore: release v$NEW_VERSION" || true
+  
+  # Create and push tag
+  git tag -a "v$NEW_VERSION" -m "Version $NEW_VERSION" || true
 }
 
-# Get the new version (either from successful release-it run or our manual update)
+# Get the new version if it wasn't set by our manual process
 if [ -z "$NEW_VERSION" ]; then
-  # Try getting version from package.json
+  # Read the current version from package.json
   NEW_VERSION=$(jq -r ".version" package.json)
-  
-  # Check if release version was already incremented in the current run
-  GIT_TAG_VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "")
-  
-  # If git tag version matches package.json version and we were asked to do a patch/minor/major release
-  # then we should have bumped to a new version, but the release process failed
-  # In this case, manually calculate what the next version should have been
-  if [ "$GIT_TAG_VERSION" = "$NEW_VERSION" ] && [ "$RELEASE_TYPE" != "" ]; then
-    # Increment version based on release type
-    IFS='.' read -r -a version_parts <<< "$NEW_VERSION"
-    MAJOR="${version_parts[0]}"
-    MINOR="${version_parts[1]}"
-    PATCH="${version_parts[2]}"
-    
-    if [ "$RELEASE_TYPE" = "major" ]; then
-      MAJOR=$((MAJOR + 1))
-      MINOR=0
-      PATCH=0
-    elif [ "$RELEASE_TYPE" = "minor" ]; then
-      MINOR=$((MINOR + 1))
-      PATCH=0
-    else
-      # Default is patch
-      PATCH=$((PATCH + 1))
-    fi
-    
-    NEW_VERSION="$MAJOR.$MINOR.$PATCH"
-    
-    echo "Calculated expected new version: $NEW_VERSION"
-    
-    # Update package.json with the calculated version
-    jq ".version = \"$NEW_VERSION\"" package.json > package.json.tmp
-    mv package.json.tmp package.json
-    
-    # Create tag for the new version since release-it failed to do it
-    echo "Creating Git tag for v$NEW_VERSION..."
-    git add package.json
-    git commit -m "chore: release v$NEW_VERSION" || true
-    git tag -a "v$NEW_VERSION" -m "Version $NEW_VERSION" || true
-  fi
 fi
 
 # Clean up temporary files
