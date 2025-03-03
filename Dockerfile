@@ -26,7 +26,8 @@ WORKDIR /usr/src/app
 
 # Copy package files and install production dependencies only
 COPY package*.json ./
-RUN npm ci --only=production
+# Skip husky installation in production
+RUN npm ci --only=production --ignore-scripts
 
 # Copy built JavaScript files from builder
 COPY --from=builder /usr/src/app/dist ./dist
