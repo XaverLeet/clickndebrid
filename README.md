@@ -184,6 +184,9 @@ npm run release:auto major
 
 # Skip tests during release
 npm run release:auto -- --skip-tests
+
+# Set a specific version
+npm run release:auto -- --set-version=2.0.0
 ```
 
 For automated GitHub releases, create a `.env.release` file with your GitHub token:

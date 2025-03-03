@@ -16,26 +16,30 @@ if [ -n "$(git status --porcelain)" ]; then
   exit 1
 fi
 
-# Determine release type from argument
-RELEASE_TYPE=${1:-patch}
+# Initialize variables
+RELEASE_TYPE="patch"
+SKIP_TESTS=false
+SKIP_GIT_SYNC=false
+MANUAL_VERSION=""
+
+# Parse arguments
+for arg in "$@"; do
+  if [[ "$arg" =~ ^(patch|minor|major)$ ]]; then
+    RELEASE_TYPE="$arg"
+  elif [[ "$arg" == "--skip-tests" ]]; then
+    SKIP_TESTS=true
+  elif [[ "$arg" == "--skip-git-sync" ]]; then
+    SKIP_GIT_SYNC=true
+  elif [[ "$arg" =~ ^--set-version=(.+)$ ]]; then
+    MANUAL_VERSION="${BASH_REMATCH[1]}"
+  fi
+done
 
 # Validate release type
 if [[ ! "$RELEASE_TYPE" =~ ^(patch|minor|major)$ ]]; then
   echo "Error: Invalid release type. Use 'patch', 'minor', or 'major'."
   exit 1
 fi
-
-# Check for a --skip-tests flag
-SKIP_TESTS=false
-SKIP_GIT_SYNC=false
-for arg in "$@"; do
-  if [ "$arg" == "--skip-tests" ]; then
-    SKIP_TESTS=true
-  fi
-  if [ "$arg" == "--skip-git-sync" ]; then
-    SKIP_GIT_SYNC=true
-  fi
-done
 
 # Pull latest changes
 if [ "$SKIP_GIT_SYNC" = false ]; then
@@ -92,12 +96,58 @@ if [ -z "$GITHUB_TOKEN" ]; then
   echo "Consider adding your token to .env.release file for automated releases."
 fi
 
+# Ensure package.json version is up to date for the release-it tool
+echo "Ensuring package.json version is up to date..."
+jq -r ".version" package.json > .version.tmp
+CURRENT_VERSION=$(cat .version.tmp)
+rm .version.tmp
+
+# Manually update version if specified
+if [ "$MANUAL_VERSION" != "" ]; then
+  echo "Manually setting version to $MANUAL_VERSION..."
+  # Update package.json version using jq
+  jq ".version = \"$MANUAL_VERSION\"" package.json > package.json.tmp
+  mv package.json.tmp package.json
+  CURRENT_VERSION=$MANUAL_VERSION
+fi
+
+# Create or update package.json version file to help release-it
+echo "Creating .version file for release-it..."
+echo "$CURRENT_VERSION" > .version
+
 # Create release
 echo "Creating $RELEASE_TYPE release..."
-npm run "release:$RELEASE_TYPE" -- --no-npm
+npm run "release:$RELEASE_TYPE" -- --no-npm || {
+  echo "Release process failed. Checking if package.json was updated..."
+  
+  # Check if package.json was updated but commit failed
+  NEW_VERSION=$(jq -r ".version" package.json)
+  if [ "$NEW_VERSION" != "$CURRENT_VERSION" ]; then
+    echo "Package.json was updated to version $NEW_VERSION but commit failed."
+    echo "Manually creating git tag and commit..."
+    
+    # Stage package.json and other modified files
+    git add package.json
+    git add CHANGELOG.md || true
+    
+    # Commit changes
+    git commit -m "chore: release v$NEW_VERSION" || echo "No changes to commit"
+    
+    # Create tag
+    git tag -a "v$NEW_VERSION" -m "Version $NEW_VERSION"
+  else
+    echo "No version change detected. Using current version: $CURRENT_VERSION"
+    NEW_VERSION=$CURRENT_VERSION
+  fi
+}
 
-# Get the new version
-NEW_VERSION=$(node -p "require('./package.json').version")
+# Get the new version (either from successful release-it run or our manual update)
+if [ -z "$NEW_VERSION" ]; then
+  NEW_VERSION=$(jq -r ".version" package.json)
+fi
+
+# Clean up .version file
+rm -f .version
 
 # Push changes and tags
 if [ "$SKIP_GIT_SYNC" = false ]; then

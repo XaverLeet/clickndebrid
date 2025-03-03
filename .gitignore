@@ -142,6 +142,8 @@ dist
 dist/
 .codeiumignore
 .windsurfrules
+.version
+.version.tmp
 
 # vuepress v2.x temp and cache directory
 .temp
