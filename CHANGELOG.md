@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.4 (2025-03-03)
+
+### Changes
+
+- build: more resilience (5ca38b9)
+- build: better reliability (984a552)
+- fix: add write permissions for GitHub release action (e0ae395)
+
 ## 1.1.3 (2025-03-03)
 
 ### Changes
