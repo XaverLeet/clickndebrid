@@ -143,17 +143,68 @@ npm run "release:$RELEASE_TYPE" -- --no-npm || {
 
 # Get the new version (either from successful release-it run or our manual update)
 if [ -z "$NEW_VERSION" ]; then
+  # Try getting version from package.json
   NEW_VERSION=$(jq -r ".version" package.json)
+  
+  # Check if release version was already incremented in the current run
+  GIT_TAG_VERSION=$(git describe --tags --abbrev=0 2>/dev/null | sed 's/^v//' || echo "")
+  
+  # If git tag version matches package.json version and we were asked to do a patch/minor/major release
+  # then we should have bumped to a new version, but the release process failed
+  # In this case, manually calculate what the next version should have been
+  if [ "$GIT_TAG_VERSION" = "$NEW_VERSION" ] && [ "$RELEASE_TYPE" != "" ]; then
+    # Increment version based on release type
+    IFS='.' read -r -a version_parts <<< "$NEW_VERSION"
+    MAJOR="${version_parts[0]}"
+    MINOR="${version_parts[1]}"
+    PATCH="${version_parts[2]}"
+    
+    if [ "$RELEASE_TYPE" = "major" ]; then
+      MAJOR=$((MAJOR + 1))
+      MINOR=0
+      PATCH=0
+    elif [ "$RELEASE_TYPE" = "minor" ]; then
+      MINOR=$((MINOR + 1))
+      PATCH=0
+    else
+      # Default is patch
+      PATCH=$((PATCH + 1))
+    fi
+    
+    NEW_VERSION="$MAJOR.$MINOR.$PATCH"
+    
+    echo "Calculated expected new version: $NEW_VERSION"
+    
+    # Update package.json with the calculated version
+    jq ".version = \"$NEW_VERSION\"" package.json > package.json.tmp
+    mv package.json.tmp package.json
+    
+    # Create tag for the new version since release-it failed to do it
+    echo "Creating Git tag for v$NEW_VERSION..."
+    git add package.json
+    git commit -m "chore: release v$NEW_VERSION" || true
+    git tag -a "v$NEW_VERSION" -m "Version $NEW_VERSION" || true
+  fi
 fi
 
-# Clean up .version file
+# Clean up temporary files
 rm -f .version
+rm -f .version.tmp
+rm -f package.json.tmp
 
 # Push changes and tags
 if [ "$SKIP_GIT_SYNC" = false ]; then
   echo "Pushing changes and tags..."
   git push --follow-tags origin main
 fi
+
+# Add a summary section to show what actually happened
+echo ""
+echo "=== Release Summary ==="
+echo "Package.json version: $NEW_VERSION"
+echo "Latest git tag: $(git describe --tags --abbrev=0 2>/dev/null || echo 'No tags')"
+echo "Release type requested: $RELEASE_TYPE"
+echo ""
 
 echo "Release v$NEW_VERSION created and pushed successfully!"
 if [ "$SKIP_GIT_SYNC" = false ]; then
