@@ -3,6 +3,13 @@
 # Ensure we're in the project root
 cd "$(dirname "$0")/.." || exit 1
 
+# Load GitHub token from .env.release file if it exists
+ENV_FILE=".env.release"
+if [ -f "$ENV_FILE" ]; then
+  echo "Loading environment variables from $ENV_FILE..."
+  export $(grep -v '^#' "$ENV_FILE" | xargs)
+fi
+
 # Check if there are uncommitted changes
 if [ -n "$(git status --porcelain)" ]; then
   echo "Error: You have uncommitted changes. Please commit or stash them before releasing."
@@ -77,6 +84,12 @@ if [ "$SKIP_TESTS" = false ]; then
     echo "Error: Linting failed. Please fix the issues before releasing."
     exit 1
   fi
+fi
+
+# Check if GITHUB_TOKEN is available
+if [ -z "$GITHUB_TOKEN" ]; then
+  echo "WARNING: GITHUB_TOKEN not found in environment. GitHub releases may require manual browser authentication."
+  echo "Consider adding your token to .env.release file for automated releases."
 fi
 
 # Create release
