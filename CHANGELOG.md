@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.19 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- No bug fixes
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- ci: enable automatic release workflow triggering after develop-to-main sync (f5d3632)
+
 ## 1.1.18 (2025-03-29)
 
 ### 🚀 Features
