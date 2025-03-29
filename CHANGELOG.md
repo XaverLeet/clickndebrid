@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.34 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- fix(ci): added REPO_ACCESS_TOKEN (16174d5)
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- No other changes
+
 ## 1.1.33 (2025-03-29)
 
 ### 🚀 Features
