@@ -5,6 +5,10 @@ services:
     # Uncomment the following lines to build from source instead
     # build:
     #   dockerfile: Dockerfile
+    #   context: .
+    #   platforms:
+    #     - linux/amd64
+    #     - linux/arm64
     restart: unless-stopped
     user: 1000:1000
     ports:

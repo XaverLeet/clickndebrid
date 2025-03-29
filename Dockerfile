@@ -1,5 +1,5 @@
 # Build stage
-FROM node:20-alpine as builder
+FROM --platform=$BUILDPLATFORM node:20-alpine as builder
 
 WORKDIR /usr/src/app
 
@@ -20,7 +20,7 @@ COPY scripts/ ./scripts/
 RUN npm run build
 
 # Production stage
-FROM node:20-alpine
+FROM --platform=$TARGETPLATFORM node:20-alpine
 
 WORKDIR /usr/src/app
 
