@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.1.23 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- No bug fixes
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- ci: fix Docker multi-architecture manifest creation with improved approach (72c12bf)
+- ci: fix Docker manifest creation in release workflow (7492c78)
+
 ## 1.1.22 (2025-03-29)
 
 ### 🚀 Features
