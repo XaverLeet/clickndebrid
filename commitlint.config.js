@@ -1,11 +1,18 @@
 export default {
   extends: ['@commitlint/config-conventional'],
   rules: {
+    // Relaxed rules for body content
     'body-leading-blank': [1, 'always'],
-    'body-max-line-length': [2, 'always', 100],
+    'body-max-line-length': [1, 'always', 250], // Increased from 100 to 250, changed to warning (1)
+    
+    // Relaxed rules for footer content
     'footer-leading-blank': [1, 'always'],
-    'footer-max-line-length': [2, 'always', 100],
-    'header-max-length': [2, 'always', 100],
+    'footer-max-line-length': [1, 'always', 200], // Increased from 100 to 200, changed to warning (1)
+    
+    // Increased header length but kept as error
+    'header-max-length': [2, 'always', 150], // Increased from 100 to 150
+    
+    // Rules for subject formatting
     'subject-case': [
       2,
       'never',
@@ -13,6 +20,8 @@ export default {
     ],
     'subject-empty': [2, 'never'],
     'subject-full-stop': [2, 'never', '.'],
+    
+    // Rules for type formatting
     'type-case': [2, 'always', 'lower-case'],
     'type-empty': [2, 'never'],
     'type-enum': [
@@ -30,6 +39,8 @@ export default {
         'revert',
         'style',
         'test',
+        'security', // Added security type
+        'deps',     // Added dependencies type
       ],
     ],
   },

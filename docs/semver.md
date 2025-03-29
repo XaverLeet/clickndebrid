@@ -56,8 +56,20 @@ We use the [Conventional Commits](https://www.conventionalcommits.org/) standard
 - `build:` - Changes to the build system or dependencies
 - `ci:` - Changes to CI configuration files and scripts
 - `chore:` - Other changes that don't modify src or test files
+- `security:` - Security-related changes
+- `deps:` - Dependency updates
 
 Breaking changes are indicated by appending a `!` after the type or including `BREAKING CHANGE:` in the commit message body.
+
+### Verbose Commit Messages
+
+Our project allows for verbose, detailed commit messages with relaxed constraints:
+
+- Header line can be up to 150 characters (format: `type: subject`)
+- Body lines can be up to 250 characters
+- Footer lines can be up to 200 characters
+
+Long detailed explanations are encouraged in multi-paragraph commit message bodies, particularly for complex changes or security-related updates. While we follow conventional commits, we prioritize clarity and thoroughness over strict length limitations.
 
 ## Tooling
 
