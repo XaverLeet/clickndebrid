@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.20 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- No bug fixes
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- No other changes
+
 ## 1.1.19 (2025-03-29)
 
 ### 🚀 Features
