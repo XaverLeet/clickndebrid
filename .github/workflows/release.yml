@@ -6,7 +6,35 @@ on:
       - 'v*'
 
 jobs:
+  check-branch:
+    runs-on: ubuntu-latest
+    outputs:
+      is-main-branch: ${{ steps.check.outputs.is-main-branch }}
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Check if tag is on main branch
+        id: check
+        run: |
+          # Get the branch name for this tag
+          BRANCH=$(git branch -r --contains ${{ github.ref }} | grep -v HEAD | sed -e 's/^[^\/]*\///' -e 's/^[ \t]*//')
+          echo "Branch for this tag: $BRANCH"
+          
+          # Check if the tag is on the main branch
+          if [[ "$BRANCH" == *"main"* ]]; then
+            echo "is-main-branch=true" >> $GITHUB_OUTPUT
+            echo "This tag is on the main branch, proceeding with release"
+          else
+            echo "is-main-branch=false" >> $GITHUB_OUTPUT
+            echo "This tag is NOT on the main branch, cancelling release"
+          fi
+
   build:
+    needs: check-branch
+    if: needs.check-branch.outputs.is-main-branch == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -63,7 +91,8 @@ jobs:
 
   docker-amd64:
     runs-on: ubuntu-latest
-    needs: build
+    needs: [check-branch, build]
+    if: needs.check-branch.outputs.is-main-branch == 'true'
     permissions:
       contents: read
       packages: write
@@ -109,7 +138,8 @@ jobs:
 
   docker-arm64:
     runs-on: ubuntu-24.04-arm
-    needs: build
+    needs: [check-branch, build]
+    if: needs.check-branch.outputs.is-main-branch == 'true'
     permissions:
       contents: read
       packages: write
@@ -155,7 +185,8 @@ jobs:
 
   create-manifest:
     runs-on: ubuntu-latest
-    needs: [docker-amd64, docker-arm64]
+    needs: [check-branch, docker-amd64, docker-arm64]
+    if: needs.check-branch.outputs.is-main-branch == 'true'
     permissions:
       contents: read
       packages: write

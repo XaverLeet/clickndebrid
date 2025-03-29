@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, develop]
+    branches: [develop]
     paths-ignore:
       - 'CHANGELOG.md'
   pull_request:
