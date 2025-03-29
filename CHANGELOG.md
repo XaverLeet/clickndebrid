@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.1.42 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- No bug fixes
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- ci: upgrade to GitHub Actions artifact v4 (cef6204)
+- ci: fix workflow error related to artifact downloading (d3502f6)
+
 ## 1.1.41 (2025-03-29)
 
 ### 🚀 Features
