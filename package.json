@@ -20,9 +20,8 @@
     "release:minor": "release-it minor",
     "release:major": "release-it major",
     "release:patch": "release-it patch",
-    "release:auto": "bash ./scripts/release.sh auto",
-    "release:dry-run": "bash ./scripts/release.sh --dry-run",
-    "setup:husky": "bash ./scripts/setup-husky.sh",
+    "release:auto": "./scripts/release.sh auto",
+    "release:dry-run": "./scripts/release.sh --dry-run",
     "prepare": "husky"
   },
   "author": "XaverLeet",
