@@ -34,3 +34,10 @@
 - **Commits**: Follow conventional commits (feat, fix, docs, style, refactor, etc.)
 
 Customize service functionality through the configuration in src/config/index.ts.
+
+## Docker Guidelines
+
+- Docker images are built automatically for both AMD64 and ARM64 architectures on release
+- Docker Compose is the recommended way to run the application
+- The official image is available at `ghcr.io/xaverleet/clickndebrid:latest`
+- Always use the latest image tag which includes multi-architecture support
