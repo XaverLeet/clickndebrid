@@ -8,9 +8,10 @@ on:
     tags:
       - "v*" # This will trigger on any tag starting with 'v'
 
-# Add permissions to allow the workflow to push to the repository
+# Add permissions to allow the workflow to push to the repository and trigger other workflows
 permissions:
   contents: write
+  actions: write
 
 jobs:
   update-main:
@@ -132,7 +133,22 @@ jobs:
             echo "Main branch was NOT updated (prerelease with existing stable releases)"
           fi
           echo ""
-          echo "GitHub Release creation is handled by tag-release.yml workflow"
+          echo "GitHub Release creation is handled by release.yml workflow"
+            
+      - name: Trigger release workflow
+        if: steps.verify-branch.outputs.continue == 'true' && (steps.tag-info.outputs.is_prerelease == 'false' || steps.check-releases.outputs.release_count == '0')
+        run: |
+          TAG_NAME="${{ steps.tag-info.outputs.tag_name }}"
+          echo "Triggering release workflow for version $TAG_NAME on main branch"
+          
+          # Create a repository dispatch event to trigger the release workflow
+          # Note: REPO_ACCESS_TOKEN must be created as a repository secret with workflow permissions
+          # The default GITHUB_TOKEN doesn't have permission to trigger workflows
+          curl -X POST \
+            -H "Authorization: token ${{ secrets.REPO_ACCESS_TOKEN }}" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository }}/dispatches \
+            -d '{"event_type": "manual-release", "client_payload": {"version": "'"$TAG_NAME"'"}}'
 
       - name: Message for non-develop tags
         if: steps.verify-branch.outputs.continue != 'true'
