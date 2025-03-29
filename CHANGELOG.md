@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.16 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- No bug fixes
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- ci: fix Docker manifest creation in release workflow (9679f83)
+
 ## 1.1.15 (2025-03-29)
 
 ### 🚀 Features
