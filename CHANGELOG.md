@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.1.33 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- No bug fixes
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- ci: fix Docker manifest workflow coordination (d8c89fd)
+- ci: skip CI workflow for version tag pushes (5afacc7)
+
 ## 1.1.32 (2025-03-29)
 
 ### 🚀 Features
