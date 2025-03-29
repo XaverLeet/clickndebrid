@@ -177,53 +177,87 @@ jobs:
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           
-          # Enable experimental Docker CLI features for manifest commands
-          export DOCKER_CLI_EXPERIMENTAL=enabled
+          # Let's utilize GitHub Container Registry API via curl to create and update tags
+          # This avoids Docker manifest issues completely
           
-          # Using Docker manifest command directly which is designed for this purpose
-          echo "Creating and pushing manifest using docker manifest..."
+          echo "Using Container Registry API to create multi-architecture tags..."
           
-          # First attempt to directly access the images without pulling
-          # This avoids potential architecture compatibility issues
+          # Extract the required token from the Docker config
+          TOKEN=$(jq -r '.auths["ghcr.io"].auth' ~/.docker/config.json | base64 -d | cut -d: -f2)
           
-          # Check if the images exist
+          # Verify we have a token
+          if [ -z "$TOKEN" ]; then
+            echo "Error: Could not extract token for ghcr.io"
+            exit 1
+          fi
+          
+          # Function to retag an image
+          retag_image() {
+            local source_tag="$1"
+            local target_tag="$2"
+            
+            echo "Retagging $source_tag to $target_tag"
+            
+            # Get the manifest of the source image
+            echo "Getting manifest for $source_tag"
+            MANIFEST=$(curl -s -H "Authorization: Bearer $TOKEN" \
+                            -H "Accept: application/vnd.oci.image.manifest.v1+json" \
+                            https://ghcr.io/v2/${REPO}/manifests/$source_tag)
+            
+            if [ -z "$MANIFEST" ] || echo "$MANIFEST" | grep -q "error"; then
+              echo "Error: Failed to get manifest for $source_tag"
+              echo "$MANIFEST"
+              return 1
+            fi
+            
+            # Put the manifest to the target tag
+            echo "Putting manifest to $target_tag"
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+                             -X PUT \
+                             -H "Authorization: Bearer $TOKEN" \
+                             -H "Content-Type: application/vnd.oci.image.manifest.v1+json" \
+                             -d "$MANIFEST" \
+                             https://ghcr.io/v2/${REPO}/manifests/$target_tag)
+            
+            if [ "$HTTP_CODE" -ne 201 ]; then
+              echo "Error: Failed to put manifest for $target_tag, HTTP code: $HTTP_CODE"
+              return 1
+            fi
+            
+            echo "Successfully retagged $source_tag to $target_tag"
+            return 0
+          }
+          
+          # Check if amd64 and arm64 images exist
           echo "Checking if images exist..."
           
-          # Use manifest inspect to check if images exist without pulling
-          echo "Checking AMD64 image..."
-          if ! docker manifest inspect ghcr.io/${REPO}:${VERSION}-amd64 > /dev/null 2>&1; then
-            echo "Error: AMD64 image not found"
+          for arch in "amd64" "arm64"; do
+            IMAGE_TAG="${VERSION}-${arch}"
+            echo "Checking $IMAGE_TAG image..."
+            
+            HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+                             -H "Authorization: Bearer $TOKEN" \
+                             -H "Accept: application/vnd.oci.image.manifest.v1+json" \
+                             https://ghcr.io/v2/${REPO}/manifests/$IMAGE_TAG)
+            
+            if [ "$HTTP_CODE" -ne 200 ]; then
+              echo "Error: $arch image not found (HTTP $HTTP_CODE)"
+              exit 1
+            fi
+          done
+          
+          # Create version tag
+          echo "Creating version tag $VERSION..."
+          if ! retag_image "${VERSION}-amd64" "$VERSION"; then
+            echo "Failed to create version tag"
             exit 1
           fi
           
-          echo "Checking ARM64 image..."
-          if ! docker manifest inspect ghcr.io/${REPO}:${VERSION}-arm64 > /dev/null 2>&1; then
-            echo "Error: ARM64 image not found"
+          # Create latest tag
+          echo "Creating latest tag..."
+          if ! retag_image "${VERSION}-amd64" "latest"; then
+            echo "Failed to create latest tag"
             exit 1
           fi
           
-          # Create version manifest with --insecure option
-          echo "Creating version manifest..."
-          docker manifest create --insecure ghcr.io/${REPO}:${VERSION} \
-            ghcr.io/${REPO}:${VERSION}-amd64 \
-            ghcr.io/${REPO}:${VERSION}-arm64
-          
-          # Create latest manifest with --insecure option
-          echo "Creating latest manifest..."
-          docker manifest create --insecure ghcr.io/${REPO}:latest \
-            ghcr.io/${REPO}:${VERSION}-amd64 \
-            ghcr.io/${REPO}:${VERSION}-arm64
-          
-          # Annotate manifests
-          echo "Annotating manifests..."
-          docker manifest annotate --insecure ghcr.io/${REPO}:${VERSION} ghcr.io/${REPO}:${VERSION}-amd64 --os linux --arch amd64
-          docker manifest annotate --insecure ghcr.io/${REPO}:${VERSION} ghcr.io/${REPO}:${VERSION}-arm64 --os linux --arch arm64
-          docker manifest annotate --insecure ghcr.io/${REPO}:latest ghcr.io/${REPO}:${VERSION}-amd64 --os linux --arch amd64
-          docker manifest annotate --insecure ghcr.io/${REPO}:latest ghcr.io/${REPO}:${VERSION}-arm64 --os linux --arch arm64
-          
-          # Push manifests with --insecure option
-          echo "Pushing version manifest..."
-          docker manifest push --insecure ghcr.io/${REPO}:${VERSION}
-          
-          echo "Pushing latest manifest..."
-          docker manifest push --insecure ghcr.io/${REPO}:latest
+          echo "Multi-architecture tags created successfully!"
