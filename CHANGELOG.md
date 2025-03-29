@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.12 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- fix: add --legacy-peer-deps flag to npm install in Dockerfile (699e0a6)
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- ci: remove Docker build workflow (95adc2e)
+
 ## 1.1.11 (2025-03-29)
 
 ### 🚀 Features
