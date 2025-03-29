@@ -1,6 +1,6 @@
 {
   "name": "clickndebrid",
-  "version": "1.1.34",
+  "version": "1.1.35",
   "description": "A Click'n'Load proxy server that converts links via debrid services API and submits them to PyLoad et al.",
   "type": "module",
   "main": "dist/index.js",

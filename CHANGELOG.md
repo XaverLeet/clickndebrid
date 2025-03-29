@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.35 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- fix(ci): readded REPO_ACCESS_TOKEN (3e7ba44)
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- ci: standardize workflow permissions and token usage (3ccf9f4)
+
 ## 1.1.34 (2025-03-29)
 
 ### 🚀 Features
