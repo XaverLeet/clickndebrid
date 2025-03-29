@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.1.17 (2025-03-29)
+
+### 🚀 Features
+
+- feat(ci): added syncing version-tagged release to main (a53fb19)
+
+### 🐛 Bug Fixes
+
+- No bug fixes
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- ci: refine CI/CD workflows branch triggers (c7f5ed5)
+- ci: implement API-based Docker image tagging for releases (150773c)
+
 ## 1.1.16 (2025-03-29)
 
 ### 🚀 Features
