@@ -195,7 +195,12 @@ if [ -z "$MANUAL_VERSION" ]; then
       print_error "Failed to determine next version"
       NEXT_VERSION=""
     else
-      NEXT_VERSION=$(echo "$VERSION_JSON" | jq -r '.[] | values')
+      # More robust JSON parsing
+      NEXT_VERSION=$(echo "$VERSION_JSON" | jq -r 'if type=="object" then .[] | values else . end' 2>/dev/null)
+      if [ -z "$NEXT_VERSION" ] || [ "$NEXT_VERSION" == "null" ]; then
+        # Fallback for when jq can't parse the output
+        NEXT_VERSION=$(echo "$VERSION_JSON" | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+\(-[0-9A-Za-z-]\+\(\.[0-9A-Za-z-]\+\)*\)\?')
+      fi
     fi
     # Revert the change made by npm version
     git checkout -- package.json
@@ -210,7 +215,12 @@ if [ -z "$MANUAL_VERSION" ]; then
       print_error "Failed to determine next version"
       NEXT_VERSION=""
     else
-      NEXT_VERSION=$(echo "$VERSION_JSON" | jq -r '.[] | values')
+      # More robust JSON parsing
+      NEXT_VERSION=$(echo "$VERSION_JSON" | jq -r 'if type=="object" then .[] | values else . end' 2>/dev/null)
+      if [ -z "$NEXT_VERSION" ] || [ "$NEXT_VERSION" == "null" ]; then
+        # Fallback for when jq can't parse the output
+        NEXT_VERSION=$(echo "$VERSION_JSON" | grep -o '[0-9]\+\.[0-9]\+\.[0-9]\+\(-[0-9A-Za-z-]\+\(\.[0-9A-Za-z-]\+\)*\)\?')
+      fi
     fi
     # Revert the change made by npm version
     git checkout -- package.json
