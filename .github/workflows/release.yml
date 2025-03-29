@@ -5,7 +5,8 @@ on:
     branches:
       - main
   repository_dispatch:
-    types: [manual-release]
+    types: 
+      - 'Release: v*'
 
 jobs:
   check-version-tag:

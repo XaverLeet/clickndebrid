@@ -148,7 +148,7 @@ jobs:
             -H "Authorization: token ${{ secrets.REPO_ACCESS_TOKEN }}" \
             -H "Accept: application/vnd.github.v3+json" \
             https://api.github.com/repos/${{ github.repository }}/dispatches \
-            -d '{"event_type": "manual-release", "client_payload": {"version": "'"$TAG_NAME"'"}}'
+            -d '{"event_type": "Release: '"$TAG_NAME"'", "client_payload": {"version": "'"$TAG_NAME"'"}}'
 
       - name: Message for non-develop tags
         if: steps.verify-branch.outputs.continue != 'true'
