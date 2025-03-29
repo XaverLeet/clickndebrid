@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.1.21 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- No bug fixes
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- ci: implement comprehensive GitHub Actions workflow (45e37e1)
+- ci: separate workflows for CI, sync and release (4e42870)
+
 ## 1.1.20 (2025-03-29)
 
 ### 🚀 Features
