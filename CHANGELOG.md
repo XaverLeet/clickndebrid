@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.8 (2025-03-29)
+
+### Changes
+
+- chore: update package-lock.json to latest (5e420e3)
+- ci: add multi-architecture Docker build workflow and package configuration (48fb7f8)
+- docs: update CLAUDE.md with Docker multi-architecture information (88d2ced)
+- feat: add native ARM64 and AMD64 builds using GitHub's new ARM runners (5663e3a)
+
 ## 1.1.7 (2025-03-29)
 
 ### Changes
