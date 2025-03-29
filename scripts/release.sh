@@ -145,10 +145,14 @@ if [ "$SKIP_GIT_SYNC" = false ] && [ "$DRY_RUN" = false ]; then
   git pull || exit_with_error "Failed to pull latest changes"
 fi
 
-# Ensure husky hooks are set up if not in dry run mode
+# Skip husky setup in dry run or if the script doesn't exist
 if [ "$DRY_RUN" = false ]; then
-  print_info "Ensuring Git hooks are set up..."
-  npm run setup:husky 2>/dev/null || print_warning "Couldn't set up husky hooks. Continuing anyway..."
+  # Only try to run setup:husky if the script exists in package.json
+  if grep -q "\"setup:husky\":" package.json && npm run -s setup:husky &>/dev/null; then
+    print_info "Git hooks have been set up"
+  else
+    print_warning "Skipping husky setup. Continuing without Git hooks..."
+  fi
 fi
 
 # Get current version
@@ -185,7 +189,14 @@ if [ -z "$MANUAL_VERSION" ]; then
     RELEASE_TYPE=$AUTO_BUMP
     
     # Use npm to calculate the next version based on semver rules
-    NEXT_VERSION=$(npm --no-git-tag-version version $RELEASE_TYPE --json | jq -r '."clickndebrid"')
+    VERSION_JSON=$(npm --no-git-tag-version version $RELEASE_TYPE --json)
+    # Handle potential error in json output
+    if [ $? -ne 0 ] || [ -z "$VERSION_JSON" ]; then
+      print_error "Failed to determine next version"
+      NEXT_VERSION=""
+    else
+      NEXT_VERSION=$(echo "$VERSION_JSON" | jq -r '.[] | values')
+    fi
     # Revert the change made by npm version
     git checkout -- package.json
     
@@ -193,7 +204,14 @@ if [ -z "$MANUAL_VERSION" ]; then
     echo -e "${SPARKLES} Proposed version: ${BOLD}${GREEN}$NEXT_VERSION${RESET}"
   else
     # Use npm to calculate the next version based on specified release type
-    NEXT_VERSION=$(npm --no-git-tag-version version $RELEASE_TYPE --json | jq -r '."clickndebrid"')
+    VERSION_JSON=$(npm --no-git-tag-version version $RELEASE_TYPE --json)
+    # Handle potential error in json output
+    if [ $? -ne 0 ] || [ -z "$VERSION_JSON" ]; then
+      print_error "Failed to determine next version"
+      NEXT_VERSION=""
+    else
+      NEXT_VERSION=$(echo "$VERSION_JSON" | jq -r '.[] | values')
+    fi
     # Revert the change made by npm version
     git checkout -- package.json
 
