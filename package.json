@@ -20,8 +20,8 @@
     "release:minor": "release-it minor",
     "release:major": "release-it major",
     "release:patch": "release-it patch",
-    "release:auto": "bash ./scripts/release.sh",
-    "test:release": "bash ./scripts/test-release.sh",
+    "release:auto": "bash ./scripts/release.sh auto",
+    "release:dry-run": "bash ./scripts/release.sh --dry-run",
     "setup:husky": "bash ./scripts/setup-husky.sh",
     "prepare": "husky"
   },
@@ -43,6 +43,7 @@
   "devDependencies": {
     "@commitlint/cli": "^19.0.3",
     "@commitlint/config-conventional": "^19.0.3",
+    "@release-it/conventional-changelog": "^7.0.2",
     "@types/body-parser": "^1.19.5",
     "@types/crypto-js": "^4.2.2",
     "@types/express": "^5.0.0",

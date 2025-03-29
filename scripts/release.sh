@@ -72,7 +72,7 @@ exit_with_error() {
 
 # Parse arguments
 for arg in "$@"; do
-  if [[ "$arg" =~ ^(patch|minor|major|premajor|preminor|prepatch|prerelease)$ ]]; then
+  if [[ "$arg" =~ ^(auto|patch|minor|major|premajor|preminor|prepatch|prerelease)$ ]]; then
     RELEASE_TYPE="$arg"
   elif [[ "$arg" == "--dry-run" ]]; then
     DRY_RUN=true
@@ -89,6 +89,7 @@ for arg in "$@"; do
     echo -e "Usage: $0 [options]"
     echo -e ""
     echo -e "Options:"
+    echo -e "  auto                        Automatically determine version based on commits (SemVer compliant)"
     echo -e "  patch|minor|major           Specify the release type (default: patch)"
     echo -e "  premajor|preminor|prepatch  Create a pre-release version"
     echo -e "  prerelease                  Increment prerelease version"
@@ -100,16 +101,18 @@ for arg in "$@"; do
     echo -e "  --help                      Show this help message"
     echo -e ""
     echo -e "Examples:"
+    echo -e "  $0 auto                     Determine version automatically from commit history"
     echo -e "  $0 minor                    Create a minor release"
     echo -e "  $0 --dry-run                Simulate a patch release"
     echo -e "  $0 major --yes              Create a major release without prompting"
+    echo -e "  $0 auto --dry-run           Preview auto-determined version"
     exit 0
   fi
 done
 
 # Validate release type
-if [[ ! "$RELEASE_TYPE" =~ ^(patch|minor|major|premajor|preminor|prepatch|prerelease)$ ]]; then
-  exit_with_error "Invalid release type. Use 'patch', 'minor', 'major', 'premajor', 'preminor', 'prepatch', or 'prerelease'."
+if [[ ! "$RELEASE_TYPE" =~ ^(auto|patch|minor|major|premajor|preminor|prepatch|prerelease)$ ]]; then
+  exit_with_error "Invalid release type. Use 'auto', 'patch', 'minor', 'major', 'premajor', 'preminor', 'prepatch', or 'prerelease'."
 fi
 
 # Print script header
@@ -158,15 +161,45 @@ git tag -l "v*" --sort=-v:refname | head -5 | while read -r tag; do
   echo -e "${LABEL} ${CYAN}$tag${RESET} - $(git log -1 --format=%cd --date=short $tag)"
 done
 
-# Calculate the next version based on the release type
+# Calculate the next version based on the release type or commit messages
 if [ -z "$MANUAL_VERSION" ]; then
-  # Use npm to calculate the next version based on semver rules
-  NEXT_VERSION=$(npm --no-git-tag-version version $RELEASE_TYPE --json | jq -r '."clickndebrid"')
-  # Revert the change made by npm version
-  git checkout -- package.json
+  if [ "$RELEASE_TYPE" = "auto" ]; then
+    # Auto-determine version bump based on conventional commits
+    print_info "Analyzing commits for automatic version determination..."
+    
+    # Check for breaking changes (BREAKING CHANGE in commit body or ! after type)
+    if git log --pretty=format:"%B" "v$CURRENT_VERSION"..HEAD | grep -q -E "BREAKING CHANGE|feat!|fix!|refactor!"; then
+      AUTO_BUMP="major"
+      print_info "Found breaking changes - suggesting ${BOLD}major${RESET} version bump"
+    # Check for features
+    elif git log --pretty=format:"%s" "v$CURRENT_VERSION"..HEAD | grep -q -E "^feat(\([^)]*\))?:"; then
+      AUTO_BUMP="minor"
+      print_info "Found new features - suggesting ${BOLD}minor${RESET} version bump"
+    # Default to patch
+    else
+      AUTO_BUMP="patch"
+      print_info "Found bug fixes or other changes - suggesting ${BOLD}patch${RESET} version bump"
+    fi
+    
+    # Use the auto-determined version type
+    RELEASE_TYPE=$AUTO_BUMP
+    
+    # Use npm to calculate the next version based on semver rules
+    NEXT_VERSION=$(npm --no-git-tag-version version $RELEASE_TYPE --json | jq -r '."clickndebrid"')
+    # Revert the change made by npm version
+    git checkout -- package.json
+    
+    print_info "Automatically determined release type: ${BOLD}$RELEASE_TYPE${RESET}"
+    echo -e "${SPARKLES} Proposed version: ${BOLD}${GREEN}$NEXT_VERSION${RESET}"
+  else
+    # Use npm to calculate the next version based on specified release type
+    NEXT_VERSION=$(npm --no-git-tag-version version $RELEASE_TYPE --json | jq -r '."clickndebrid"')
+    # Revert the change made by npm version
+    git checkout -- package.json
 
-  print_info "Release type: ${BOLD}$RELEASE_TYPE${RESET}"
-  echo -e "${SPARKLES} Proposed version: ${BOLD}${GREEN}$NEXT_VERSION${RESET}"
+    print_info "Release type: ${BOLD}$RELEASE_TYPE${RESET}"
+    echo -e "${SPARKLES} Proposed version: ${BOLD}${GREEN}$NEXT_VERSION${RESET}"
+  fi
 else
   NEXT_VERSION=$MANUAL_VERSION
   print_info "Manual version specified: ${BOLD}$NEXT_VERSION${RESET}"

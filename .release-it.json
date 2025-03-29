@@ -3,16 +3,27 @@
     "requireCleanWorkingDir": true,
     "requireUpstream": true,
     "commitMessage": "chore: release v${version}",
-    "tagName": "v${version}"
+    "tagName": "v${version}",
+    "changelog": "git log --pretty=format:\"* %s (%h)\" ${from}...${to}"
   },
   "npm": {
     "publish": false
   },
   "hooks": {
-    "after:bump": "npm run build"
+    "after:bump": "npm run build",
+    "before:release": "echo About to release ${version}."
   },
   "github": {
     "release": true,
-    "releaseName": "v${version}"
+    "releaseName": "v${version}",
+    "draft": false,
+    "tokenRef": "GITHUB_TOKEN"
+  },
+  "plugins": {
+    "@release-it/conventional-changelog": {
+      "preset": "angular",
+      "infile": "CHANGELOG.md",
+      "header": "# Changelog"
+    }
   }
 }
