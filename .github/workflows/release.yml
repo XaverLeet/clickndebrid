@@ -5,8 +5,8 @@ on:
     branches:
       - main
   repository_dispatch:
-    types: 
-      - 'Release: v*'
+    types:
+      - "Release: v*"
 
 jobs:
   check-version-tag:
@@ -14,12 +14,12 @@ jobs:
     outputs:
       has-version-tag: ${{ steps.check.outputs.has-version-tag }}
       version-tag: ${{ steps.check.outputs.version-tag }}
-    
+
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      
+
       - name: Check if commit has version tag
         id: check
         run: |
@@ -69,7 +69,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20.x
-          cache: 'npm'
+          cache: "npm"
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
@@ -124,7 +124,7 @@ jobs:
           token: ${{ secrets.WORKFLOW_PAT || secrets.GITHUB_TOKEN }}
           event-type: build-docker-amd64
           client-payload: '{"version": "${{ needs.check-version-tag.outputs.version-tag }}"}'
-      
+
       - name: Trigger ARM64 build
         uses: peter-evans/repository-dispatch@v2
         with:
