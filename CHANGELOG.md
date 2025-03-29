@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.14 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- No bug fixes
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- ci: fix workflow issues for version tags and Docker manifests (8545b80)
+
 ## 1.1.13 (2025-03-29)
 
 ### 🚀 Features
