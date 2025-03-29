@@ -16,191 +16,160 @@ on:
         type: boolean
 
 jobs:
-  check-build-status:
+  monitor-build-status:
     runs-on: ubuntu-latest
     permissions:
       contents: write
       packages: write
     outputs:
-      amd64-status: ${{ steps.check.outputs.amd64-status }}
-      arm64-status: ${{ steps.check.outputs.arm64-status }}
-      version: ${{ steps.check.outputs.version }}
-      ready: ${{ steps.check.outputs.ready }}
-
+      amd64-status: ${{ steps.final-check.outputs.amd64-status }}
+      arm64-status: ${{ steps.final-check.outputs.arm64-status }}
+      version: ${{ steps.final-check.outputs.version }}
+      ready: ${{ steps.final-check.outputs.ready }}
+    
+    strategy:
+      max-parallel: 1 
+      matrix:
+        check_iteration: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]
+        
     steps:
-      - name: Wait for builds to complete
+      - name: Set initial variables
+        id: init
+        run: |
+          VERSION=""
+          
+          # Get version from workflow inputs or payload
+          if [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
+            VERSION="${{ github.event.inputs.version }}"
+          elif [ "${{ github.event_name }}" == "repository_dispatch" ] && [ -n "${{ github.event.client_payload.version }}" ]; then
+            VERSION="${{ github.event.client_payload.version }}"
+          fi
+          
+          echo "iteration=${{ matrix.check_iteration }}" >> $GITHUB_OUTPUT
+          if [ -n "$VERSION" ]; then
+            echo "version=$VERSION" >> $GITHUB_OUTPUT
+          fi
+          
+          # Wait 2 minutes between checks for iteration > 1
+          if [ ${{ matrix.check_iteration }} -gt 1 ]; then
+            echo "Waiting 120 seconds before check iteration ${{ matrix.check_iteration }}..."
+            sleep 120
+          fi
+
+      - name: Download build status artifacts
+        uses: actions/download-artifact@v3
+        with:
+          name: docker-build-status
+          path: build-status
+        continue-on-error: true
+      
+      - name: Check build status
         id: check
         run: |
-          # Simpler approach - use environment information directly
           # Set default values
           AMD64_STATUS="pending"
           ARM64_STATUS="pending"
-          VERSION=""
+          VERSION="${{ steps.init.outputs.version }}"
           READY="false"
-          WAIT_TIME=30 # Maximum wait time in minutes
-          INTERVAL=60  # Check interval in seconds
-          MAX_ATTEMPTS=$((WAIT_TIME * 60 / INTERVAL))
-          CURRENT_ATTEMPT=0
-          WAIT_FOR_BUILDS="true"
           
-          # Determine if we should wait for builds
-          if [ "${{ github.event_name }}" == "workflow_dispatch" ]; then
-            WAIT_FOR_BUILDS="${{ github.event.inputs.wait_for_builds }}"
-            if [ -n "${{ github.event.inputs.version }}" ]; then
-              VERSION="${{ github.event.inputs.version }}"
-            fi
-          fi
-
-          # Set values based on the current event
+          # Debug info
           echo "Event name: ${{ github.event_name }}"
+          echo "Check iteration: ${{ matrix.check_iteration }} of 15"
           if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
             echo "Event action: ${{ github.event.action }}"
             echo "Client payload version: ${{ github.event.client_payload.version }}"
           fi
           
-          # Create build status directory
-          mkdir -p /tmp/clickndebrid-docker-builds
-          AMD64_FILE="/tmp/clickndebrid-docker-builds/AMD64_DONE"
-          ARM64_FILE="/tmp/clickndebrid-docker-builds/ARM64_DONE"
-          VERSION_FILE="/tmp/clickndebrid-docker-builds/VERSION.txt"
+          # Debug downloaded artifacts
+          echo "Checking downloaded build status artifacts:"
+          mkdir -p build-status
+          ls -la build-status/ || echo "No files found in build-status directory"
           
-          # Debug what's in the /tmp directory
-          echo "Contents of /tmp/clickndebrid-docker-builds:"
-          ls -la /tmp/clickndebrid-docker-builds/ || echo "Directory not accessible"
-          
-          # Repository dispatch handling
-          if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
-            if [ -n "${{ github.event.client_payload.version }}" ]; then
-              # Set version from the event payload
-              VERSION="${{ github.event.client_payload.version }}"
-              
-              # Save it to the VERSION file if not already there
-              if [ ! -f "$VERSION_FILE" ]; then
-                echo "$VERSION" > "$VERSION_FILE"
-                echo "Created VERSION file with: $VERSION"
-              else
-                echo "VERSION file already exists with: $(cat $VERSION_FILE)"
-                # Update it if different
-                if [ "$(cat $VERSION_FILE)" != "$VERSION" ]; then
-                  echo "Updating VERSION file to: $VERSION"
-                  echo "$VERSION" > "$VERSION_FILE"
-                fi
-              fi
-            elif [ -f "$VERSION_FILE" ]; then
-              VERSION=$(cat "$VERSION_FILE")
-              echo "Using VERSION from file: $VERSION (no payload version)"
+          # Check AMD64 build status
+          if [ -f build-status/amd64-complete ]; then
+            AMD64_STATUS="success"
+            AMD64_VERSION=$(cat build-status/amd64-complete)
+            echo "AMD64 build is complete (version: $AMD64_VERSION)"
+            if [ -f build-status/amd64-timestamp ]; then
+              echo "AMD64 build completed at: $(cat build-status/amd64-timestamp)"
             fi
-          elif [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
-            # For workflow_dispatch, use the input version
-            VERSION="${{ github.event.inputs.version }}"
-            echo "$VERSION" > "$VERSION_FILE"
-            echo "Created VERSION file with input: $VERSION"
-          elif [ -f "$VERSION_FILE" ]; then
-            # Fall back to existing VERSION file
-            VERSION=$(cat "$VERSION_FILE")
-            echo "Using VERSION from existing file: $VERSION"
-          fi
-          
-          # Print AMD64 and ARM64 status
-          if [ -f "$AMD64_FILE" ]; then
-            echo "AMD64 status file exists with version: $(cat $AMD64_FILE)"
-          else
-            echo "AMD64 status file does not exist"
-          fi
-          
-          if [ -f "$ARM64_FILE" ]; then
-            echo "ARM64 status file exists with version: $(cat $ARM64_FILE)"
-          else
-            echo "ARM64 status file does not exist"
-          fi
-          
-          if [ -z "$VERSION" ]; then
-            echo "No version specified, cannot proceed"
-            echo "version=" >> $GITHUB_OUTPUT
-            echo "ready=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-          
-          # Wait-and-check loop
-          while [ $CURRENT_ATTEMPT -lt $MAX_ATTEMPTS ]; do
-            # Check if all builds are complete
-            if [ -f "$AMD64_FILE" ]; then
-              AMD64_STATUS="success"
-              AMD64_VERSION=$(cat "$AMD64_FILE")
-              echo "AMD64 build is complete (version: $AMD64_VERSION)"
-            else
-              echo "AMD64 build is not complete"
+            
+            # If VERSION isn't set yet, use this one
+            if [ -z "$VERSION" ]; then
+              VERSION="$AMD64_VERSION"
+              echo "Setting version from AMD64 build: $VERSION"
             fi
+          else
+            echo "AMD64 build is not complete (iteration ${{ matrix.check_iteration }})"
+          fi
 
-            if [ -f "$ARM64_FILE" ]; then
-              ARM64_STATUS="success"
-              ARM64_VERSION=$(cat "$ARM64_FILE")
-              echo "ARM64 build is complete (version: $ARM64_VERSION)"
-            else
-              echo "ARM64 build is not complete"
+          # Check ARM64 build status
+          if [ -f build-status/arm64-complete ]; then
+            ARM64_STATUS="success"
+            ARM64_VERSION=$(cat build-status/arm64-complete)
+            echo "ARM64 build is complete (version: $ARM64_VERSION)"
+            if [ -f build-status/arm64-timestamp ]; then
+              echo "ARM64 build completed at: $(cat build-status/arm64-timestamp)"
             fi
             
-            # Determine if we're ready to build the manifest
-            if [ "$AMD64_STATUS" == "success" ] && [ "$ARM64_STATUS" == "success" ]; then
-              echo "Both architectures are ready for version $VERSION, proceeding with manifest creation"
-              READY="true"
-              break
+            # If VERSION isn't set yet, use this one
+            if [ -z "$VERSION" ]; then
+              VERSION="$ARM64_VERSION"
+              echo "Setting version from ARM64 build: $VERSION"
             fi
-            
-            # If not waiting, break immediately
-            if [ "$WAIT_FOR_BUILDS" != "true" ]; then
-              echo "Not waiting for builds, current status:"
-              echo "AMD64: $AMD64_STATUS, ARM64: $ARM64_STATUS"
-              break
-            fi
-            
-            # Increment attempt counter and check if we've exceeded max wait time
-            CURRENT_ATTEMPT=$((CURRENT_ATTEMPT+1))
-            if [ $CURRENT_ATTEMPT -ge $MAX_ATTEMPTS ]; then
-              echo "Reached maximum wait time ($WAIT_TIME minutes), giving up"
-              break
-            fi
-            
-            # Wait before next check
-            REMAINING_MINS=$(( (MAX_ATTEMPTS - CURRENT_ATTEMPT) * INTERVAL / 60 ))
-            echo "Waiting $INTERVAL seconds before next check (will keep checking for $REMAINING_MINS more minutes)..."
-            sleep $INTERVAL
-          done
+          else
+            echo "ARM64 build is not complete (iteration ${{ matrix.check_iteration }})"
+          fi
           
-          # Set outputs for job conditions
+          # Determine if we're ready to build the manifest
+          if [ "$AMD64_STATUS" == "success" ] && [ "$ARM64_STATUS" == "success" ]; then
+            echo "Both architectures are ready for version $VERSION, can proceed with manifest creation"
+            READY="true"
+          fi
+          
+          # Skip further iterations if we're ready
+          if [ "$READY" == "true" ]; then
+            echo "cancel-further-iterations=true" >> $GITHUB_OUTPUT
+          elif [ ${{ matrix.check_iteration }} -ge 15 ]; then
+            echo "Reached maximum number of check iterations, giving up"
+          else
+            echo "Will continue checking in next iteration"
+          fi
+          
+          # Output the results
           echo "amd64-status=$AMD64_STATUS" >> $GITHUB_OUTPUT
           echo "arm64-status=$ARM64_STATUS" >> $GITHUB_OUTPUT
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "ready=$READY" >> $GITHUB_OUTPUT
+      
+      # Cancel all remaining matrix jobs if we're ready or if requested
+      - name: Cancel remaining matrix jobs
+        if: steps.check.outputs.ready == 'true' || steps.check.outputs.cancel-further-iterations == 'true'
+        uses: andymckay/cancel-action@0.2
+        with:
+          cancel-workflow: false
+          branch: ${{ github.ref }}
+      
+      # This step runs only on the last iteration or if we're ready
+      - name: Final status check
+        id: final-check
+        if: matrix.check_iteration == 15 || steps.check.outputs.ready == 'true'
+        run: |
+          echo "This is the final status check"
+          echo "AMD64 status: ${{ steps.check.outputs.amd64-status }}"
+          echo "ARM64 status: ${{ steps.check.outputs.arm64-status }}"
+          echo "Version: ${{ steps.check.outputs.version }}"
+          echo "Ready: ${{ steps.check.outputs.ready }}"
           
-          # If we succeeded, clean up status files
-          if [ "$READY" == "true" ]; then
-            # Clean up the status files for the next build
-            if [ -f "$AMD64_FILE" ] && [ -f "$ARM64_FILE" ]; then
-              rm -f "$AMD64_FILE" "$ARM64_FILE" 
-              if [ -f "/tmp/clickndebrid-docker-builds/VERSION.txt" ]; then
-                rm -f "/tmp/clickndebrid-docker-builds/VERSION.txt"
-              fi
-              echo "Reset build status for next version"
-            fi
-          else
-            echo "Not all conditions met, manifest creation may be skipped"
-            
-            # Show what's missing
-            if [ "$AMD64_STATUS" != "success" ]; then
-              echo "AMD64 build not complete"
-            fi
-            if [ "$ARM64_STATUS" != "success" ]; then
-              echo "ARM64 build not complete"
-            fi
-            if [ -z "$VERSION" ]; then
-              echo "No version specified"
-            fi
-          fi
+          # Pass outputs to the next job
+          echo "amd64-status=${{ steps.check.outputs.amd64-status }}" >> $GITHUB_OUTPUT
+          echo "arm64-status=${{ steps.check.outputs.arm64-status }}" >> $GITHUB_OUTPUT
+          echo "version=${{ steps.check.outputs.version }}" >> $GITHUB_OUTPUT
+          echo "ready=${{ steps.check.outputs.ready }}" >> $GITHUB_OUTPUT
 
   create-manifest:
-    needs: check-build-status
-    if: needs.check-build-status.outputs.ready == 'true'
+    needs: monitor-build-status
+    if: needs.monitor-build-status.outputs.ready == 'true'
     runs-on: ubuntu-latest
     permissions:
       packages: write
@@ -217,16 +186,16 @@ jobs:
         run: |
           REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
           echo "REPO=${REPO}" >> $GITHUB_ENV
-          VERSION="${{ needs.check-build-status.outputs.version }}"
+          VERSION="${{ needs.monitor-build-status.outputs.version }}"
           VERSION_NO_V="${VERSION#v}"
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
           echo "VERSION_NO_V=${VERSION_NO_V}" >> $GITHUB_ENV
           
           # Debug information
-          echo "Ready to create manifest: ${{ needs.check-build-status.outputs.ready }}"
-          echo "AMD64 status: ${{ needs.check-build-status.outputs.amd64-status }}"
-          echo "ARM64 status: ${{ needs.check-build-status.outputs.arm64-status }}"
-          echo "Version: ${{ needs.check-build-status.outputs.version }}"
+          echo "Ready to create manifest: ${{ needs.monitor-build-status.outputs.ready }}"
+          echo "AMD64 status: ${{ needs.monitor-build-status.outputs.amd64-status }}"
+          echo "ARM64 status: ${{ needs.monitor-build-status.outputs.arm64-status }}"
+          echo "Version: ${{ needs.monitor-build-status.outputs.version }}"
 
       - name: Create and push Docker manifest
         run: |

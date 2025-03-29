@@ -47,19 +47,31 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Update build status
+      - name: Create build status artifact
         run: |
-          # Create the status directory if it doesn't exist
-          mkdir -p /tmp/clickndebrid-docker-builds
+          # Create a directory for the build status
+          mkdir -p build-status
           
-          # Mark ARM64 build as complete
-          ARM64_FILE="/tmp/clickndebrid-docker-builds/ARM64_DONE"
-          echo "${{ env.VERSION }}" > "$ARM64_FILE"
-          echo "Marked ARM64 build as complete for version ${{ env.VERSION }}"
+          # Create a file indicating ARM64 build is complete
+          echo "${{ env.VERSION }}" > build-status/arm64-complete
+          echo "Created build status file for ARM64 build version ${{ env.VERSION }}"
           
-          # Log status for debugging
-          if [ -f "$ARM64_FILE" ]; then
-            echo "ARM64 status file exists and contains: $(cat $ARM64_FILE)"
-          else
-            echo "Failed to create ARM64 status file"
-          fi
+          # Add a timestamp for debugging
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > build-status/arm64-timestamp
+          
+          # List contents of the directory
+          ls -la build-status/
+          
+      - name: Upload build status artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: docker-build-status
+          path: build-status/
+          retention-days: 1
+          
+      - name: Notify build completion
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.REPO_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
+          event-type: docker-arm64-complete
+          client-payload: '{"version": "${{ env.VERSION }}", "status": "success"}'
