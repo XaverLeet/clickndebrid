@@ -41,3 +41,34 @@ jobs:
 
       - name: Build
         run: npm run build
+        
+  sync-to-main:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    permissions:
+      contents: write
+    
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Configure Git
+        run: |
+          git config user.name "${GITHUB_ACTOR}"
+          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+      
+      - name: Sync develop to main
+        run: |
+          echo "Checking out main branch..."
+          git checkout main
+          
+          echo "Merging develop branch into main..."
+          git merge --no-ff origin/develop -m "ci: merge develop into main for release ${{ github.ref_name }}"
+          
+          echo "Pushing changes to main..."
+          git push origin main
+          
+          echo "Successfully synced develop to main for release ${{ github.ref_name }}"
