@@ -1,0 +1,169 @@
+name: Docker Manifest Builder
+
+on:
+  repository_dispatch:
+    types: [docker-amd64-complete, docker-arm64-complete]
+
+jobs:
+  check-build-status:
+    runs-on: ubuntu-latest
+    outputs:
+      amd64-status: ${{ steps.check.outputs.amd64-status }}
+      arm64-status: ${{ steps.check.outputs.arm64-status }}
+      version: ${{ steps.check.outputs.version }}
+      ready: ${{ steps.check.outputs.ready }}
+    
+    steps:
+      - name: Check build status
+        id: check
+        run: |
+          # Persistent file to store build status
+          mkdir -p /tmp/clickndebrid-docker-builds
+          STATUS_FILE="/tmp/clickndebrid-docker-builds/status.txt"
+          
+          # Initialize file if it doesn't exist
+          if [ ! -f "$STATUS_FILE" ]; then
+            echo "AMD64_STATUS=pending" > "$STATUS_FILE"
+            echo "ARM64_STATUS=pending" >> "$STATUS_FILE"
+            echo "VERSION=" >> "$STATUS_FILE"
+          fi
+          
+          # Source current status
+          source "$STATUS_FILE"
+          
+          # Update status based on the event type
+          if [ "${{ github.event.event_type }}" == "docker-amd64-complete" ]; then
+            echo "AMD64_STATUS=success" > "$STATUS_FILE"
+            echo "ARM64_STATUS=$ARM64_STATUS" >> "$STATUS_FILE"
+            echo "VERSION=${{ github.event.client_payload.version }}" >> "$STATUS_FILE"
+          fi
+          
+          if [ "${{ github.event.event_type }}" == "docker-arm64-complete" ]; then
+            echo "AMD64_STATUS=$AMD64_STATUS" > "$STATUS_FILE"
+            echo "ARM64_STATUS=success" >> "$STATUS_FILE"
+            echo "VERSION=${{ github.event.client_payload.version }}" >> "$STATUS_FILE"
+          fi
+          
+          # Re-source to get updated status
+          source "$STATUS_FILE"
+          
+          # Set outputs
+          echo "amd64-status=${AMD64_STATUS}" >> $GITHUB_OUTPUT
+          echo "arm64-status=${ARM64_STATUS}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          
+          # Determine if we're ready to build the manifest
+          if [ "$AMD64_STATUS" == "success" ] && [ "$ARM64_STATUS" == "success" ]; then
+            echo "ready=true" >> $GITHUB_OUTPUT
+            # Reset status file for next build
+            echo "AMD64_STATUS=pending" > "$STATUS_FILE"
+            echo "ARM64_STATUS=pending" >> "$STATUS_FILE"
+            echo "VERSION=" >> "$STATUS_FILE"
+          else
+            echo "ready=false" >> $GITHUB_OUTPUT
+          fi
+
+  create-manifest:
+    needs: check-build-status
+    if: needs.check-build-status.outputs.ready == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+    
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Set lowercase repository name
+        run: |
+          REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "REPO=${REPO}" >> $GITHUB_ENV
+          VERSION="${{ needs.check-build-status.outputs.version }}"
+          VERSION_NO_V="${VERSION#v}"
+          echo "VERSION=${VERSION}" >> $GITHUB_ENV
+          echo "VERSION_NO_V=${VERSION_NO_V}" >> $GITHUB_ENV
+          
+      - name: Create and push Docker manifest
+        run: |
+          # Enable Docker CLI experimental features
+          export DOCKER_CLI_EXPERIMENTAL=enabled
+          
+          # Create function for creating and pushing manifests with retries
+          create_and_push_manifest() {
+            local TAG=$1
+            local AMD64_TAG=$2
+            local ARM64_TAG=$3
+            local MAX_RETRIES=5
+            local RETRY=0
+            local SUCCESS=false
+            
+            echo "Creating manifest for ${TAG}..."
+            
+            while [ $RETRY -lt $MAX_RETRIES ] && [ "$SUCCESS" = "false" ]; do
+              if docker manifest create --insecure "ghcr.io/${REPO}:${TAG}" \
+                "ghcr.io/${REPO}:${AMD64_TAG}" \
+                "ghcr.io/${REPO}:${ARM64_TAG}"; then
+                
+                # Add platform annotations
+                docker manifest annotate "ghcr.io/${REPO}:${TAG}" \
+                  "ghcr.io/${REPO}:${AMD64_TAG}" --os linux --arch amd64
+                  
+                docker manifest annotate "ghcr.io/${REPO}:${TAG}" \
+                  "ghcr.io/${REPO}:${ARM64_TAG}" --os linux --arch arm64
+                
+                # Push with retry
+                PUSH_RETRY=0
+                PUSH_SUCCESS=false
+                
+                while [ $PUSH_RETRY -lt $MAX_RETRIES ] && [ "$PUSH_SUCCESS" = "false" ]; do
+                  if docker manifest push --insecure "ghcr.io/${REPO}:${TAG}"; then
+                    PUSH_SUCCESS=true
+                    SUCCESS=true
+                    echo "Successfully pushed manifest for ${TAG}"
+                  else
+                    PUSH_RETRY=$((PUSH_RETRY+1))
+                    if [ $PUSH_RETRY -lt $MAX_RETRIES ]; then
+                      echo "Push attempt $PUSH_RETRY failed, retrying in 5 seconds..."
+                      sleep 5
+                    else
+                      echo "Failed to push manifest after $MAX_RETRIES attempts"
+                    fi
+                  fi
+                done
+              else
+                RETRY=$((RETRY+1))
+                if [ $RETRY -lt $MAX_RETRIES ]; then
+                  echo "Create attempt $RETRY failed, retrying in 5 seconds..."
+                  sleep 5
+                else
+                  echo "Failed to create manifest after $MAX_RETRIES attempts"
+                fi
+              fi
+            done
+            
+            if [ "$SUCCESS" = "true" ]; then
+              return 0
+            else
+              return 1
+            fi
+          }
+          
+          # Create manifests for all tag formats
+          echo "Creating manifest for version without v prefix: $VERSION_NO_V"
+          create_and_push_manifest "$VERSION_NO_V" "${VERSION_NO_V}-amd64" "${VERSION_NO_V}-arm64" || echo "Failed to create manifest for $VERSION_NO_V, continuing..."
+          
+          # Only create manifest with v prefix if original version had v prefix
+          if [[ "$VERSION" == v* ]]; then
+            echo "Creating manifest for version with v prefix: $VERSION"
+            create_and_push_manifest "$VERSION" "${VERSION}-amd64" "${VERSION}-arm64" || echo "Failed to create manifest for $VERSION, continuing..."
+          fi
+          
+          # Create latest manifest
+          echo "Creating manifest for latest"
+          create_and_push_manifest "latest" "latest-amd64" "latest-arm64" || echo "Failed to create manifest for latest, continuing..."
+          
+          echo "Docker manifest creation completed"
