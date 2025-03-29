@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.32 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- fix(ci): moved docker workflows (99096e8)
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- No other changes
+
 ## 1.1.31 (2025-03-29)
 
 ### 🚀 Features
