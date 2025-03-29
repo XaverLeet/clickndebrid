@@ -2,7 +2,7 @@ name: Docker Manifest Builder
 
 on:
   repository_dispatch:
-    types: [docker-amd64-complete, docker-arm64-complete]
+    types: [docker-manifest-check]
   workflow_dispatch:
     inputs:
       version:
@@ -58,44 +58,60 @@ jobs:
             echo "Client payload version: ${{ github.event.client_payload.version }}"
           fi
           
-          # Repository dispatch specific handling
+          # Create build status directory
+          mkdir -p /tmp/clickndebrid-docker-builds
+          AMD64_FILE="/tmp/clickndebrid-docker-builds/AMD64_DONE"
+          ARM64_FILE="/tmp/clickndebrid-docker-builds/ARM64_DONE"
+          VERSION_FILE="/tmp/clickndebrid-docker-builds/VERSION.txt"
+          
+          # Debug what's in the /tmp directory
+          echo "Contents of /tmp/clickndebrid-docker-builds:"
+          ls -la /tmp/clickndebrid-docker-builds/ || echo "Directory not accessible"
+          
+          # Repository dispatch handling
           if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
-            # Create the VERSION.txt file if it doesn't exist
-            mkdir -p /tmp/clickndebrid-docker-builds
-            VERSION_FILE="/tmp/clickndebrid-docker-builds/VERSION.txt"
-            if [ ! -f "$VERSION_FILE" ] && [ -n "${{ github.event.client_payload.version }}" ]; then
-              echo "${{ github.event.client_payload.version }}" > "$VERSION_FILE"
-              echo "Created VERSION file with: ${{ github.event.client_payload.version }}"
-            fi
-            
-            # Read the version from file, or use the event payload version
-            if [ -f "$VERSION_FILE" ]; then
-              VERSION=$(cat "$VERSION_FILE")
-              echo "Read VERSION from file: $VERSION"
-            elif [ -n "${{ github.event.client_payload.version }}" ]; then
+            if [ -n "${{ github.event.client_payload.version }}" ]; then
+              # Set version from the event payload
               VERSION="${{ github.event.client_payload.version }}"
-              echo "Using VERSION from event payload: $VERSION"
+              
+              # Save it to the VERSION file if not already there
+              if [ ! -f "$VERSION_FILE" ]; then
+                echo "$VERSION" > "$VERSION_FILE"
+                echo "Created VERSION file with: $VERSION"
+              else
+                echo "VERSION file already exists with: $(cat $VERSION_FILE)"
+                # Update it if different
+                if [ "$(cat $VERSION_FILE)" != "$VERSION" ]; then
+                  echo "Updating VERSION file to: $VERSION"
+                  echo "$VERSION" > "$VERSION_FILE"
+                fi
+              fi
+            elif [ -f "$VERSION_FILE" ]; then
+              VERSION=$(cat "$VERSION_FILE")
+              echo "Using VERSION from file: $VERSION (no payload version)"
             fi
-            
-            # Create status files if needed
-            AMD64_FILE="/tmp/clickndebrid-docker-builds/AMD64_DONE"
-            ARM64_FILE="/tmp/clickndebrid-docker-builds/ARM64_DONE"
-            
-            # Update status based on the event type
-            if [ "${{ github.event.action }}" == "docker-amd64-complete" ]; then
-              echo "Marking AMD64 as complete"
-              echo "$VERSION" > "$AMD64_FILE"
-            fi
-
-            if [ "${{ github.event.action }}" == "docker-arm64-complete" ]; then
-              echo "Marking ARM64 as complete"
-              echo "$VERSION" > "$ARM64_FILE"
-            fi
+          elif [ "${{ github.event_name }}" == "workflow_dispatch" ] && [ -n "${{ github.event.inputs.version }}" ]; then
+            # For workflow_dispatch, use the input version
+            VERSION="${{ github.event.inputs.version }}"
+            echo "$VERSION" > "$VERSION_FILE"
+            echo "Created VERSION file with input: $VERSION"
+          elif [ -f "$VERSION_FILE" ]; then
+            # Fall back to existing VERSION file
+            VERSION=$(cat "$VERSION_FILE")
+            echo "Using VERSION from existing file: $VERSION"
+          fi
+          
+          # Print AMD64 and ARM64 status
+          if [ -f "$AMD64_FILE" ]; then
+            echo "AMD64 status file exists with version: $(cat $AMD64_FILE)"
           else
-            # For workflow_dispatch, ensure the build status directory exists
-            mkdir -p /tmp/clickndebrid-docker-builds
-            AMD64_FILE="/tmp/clickndebrid-docker-builds/AMD64_DONE"
-            ARM64_FILE="/tmp/clickndebrid-docker-builds/ARM64_DONE"
+            echo "AMD64 status file does not exist"
+          fi
+          
+          if [ -f "$ARM64_FILE" ]; then
+            echo "ARM64 status file exists with version: $(cat $ARM64_FILE)"
+          else
+            echo "ARM64 status file does not exist"
           fi
           
           if [ -z "$VERSION" ]; then
@@ -222,13 +238,32 @@ jobs:
             local IMAGE_TAG=$1
             echo "Verifying image exists: ghcr.io/${REPO}:${IMAGE_TAG}"
             
-            # Try to inspect the image (pull it if needed)
-            if docker pull ghcr.io/${REPO}:${IMAGE_TAG}; then
-              echo "✅ Image exists: ghcr.io/${REPO}:${IMAGE_TAG}"
+              # First check if the image exists locally
+            if docker image inspect ghcr.io/${REPO}:${IMAGE_TAG} &>/dev/null; then
+              echo "✅ Image exists locally: ghcr.io/${REPO}:${IMAGE_TAG}"
               return 0
             else
-              echo "❌ Image does not exist: ghcr.io/${REPO}:${IMAGE_TAG}"
-              return 1
+              echo "Image not found locally, attempting to pull..."
+              # Try to pull the image
+              if docker pull ghcr.io/${REPO}:${IMAGE_TAG}; then
+                echo "✅ Image pulled successfully: ghcr.io/${REPO}:${IMAGE_TAG}"
+                return 0
+              else
+                echo "❌ Image does not exist or couldn't be pulled: ghcr.io/${REPO}:${IMAGE_TAG}"
+                
+                # List available images in the registry for debugging
+                echo "Available images in the registry:"
+                TOKEN=$(echo $GITHUB_TOKEN | docker login ghcr.io -u $GITHUB_ACTOR --password-stdin 2>&1 | grep -o 'Login Succeeded' || echo "Login Failed")
+                
+                if [ "$TOKEN" == "Login Succeeded" ]; then
+                  echo "Listing available tags for ${REPO}..."
+                  curl -s -H "Authorization: Bearer $(echo $GITHUB_TOKEN)" https://ghcr.io/v2/${REPO}/tags/list | grep -o '"tags":\[[^]]*\]' || echo "No tags found or access denied"
+                else
+                  echo "Failed to authenticate with registry"
+                fi
+                
+                return 1
+              fi
             fi
           }
 

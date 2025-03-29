@@ -47,9 +47,19 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Notify manifest builder
-        uses: peter-evans/repository-dispatch@v2
-        with:
-          token: ${{ secrets.REPO_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
-          event-type: docker-arm64-complete
-          client-payload: '{"version": "${{ env.VERSION }}", "status": "success"}'
+      - name: Update build status
+        run: |
+          # Create the status directory if it doesn't exist
+          mkdir -p /tmp/clickndebrid-docker-builds
+          
+          # Mark ARM64 build as complete
+          ARM64_FILE="/tmp/clickndebrid-docker-builds/ARM64_DONE"
+          echo "${{ env.VERSION }}" > "$ARM64_FILE"
+          echo "Marked ARM64 build as complete for version ${{ env.VERSION }}"
+          
+          # Log status for debugging
+          if [ -f "$ARM64_FILE" ]; then
+            echo "ARM64 status file exists and contains: $(cat $ARM64_FILE)"
+          else
+            echo "Failed to create ARM64 status file"
+          fi

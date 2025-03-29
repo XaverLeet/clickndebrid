@@ -152,9 +152,9 @@ jobs:
           event-type: build-docker-arm64
           client-payload: '{"version": "${{ needs.check-version-tag.outputs.version-tag }}"}'
           
-      - name: Trigger manifest build to monitor
-        run: |
-          echo "Both AMD64 and ARM64 builds have been triggered"
-          echo "Version: ${{ needs.check-version-tag.outputs.version-tag }}"
-          echo "The manifest builder will automatically create manifests when both builds complete"
-          echo "If it doesn't complete, you can manually run the Docker Manifest Builder workflow"
+      - name: Trigger manifest builder workflow
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets.REPO_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
+          event-type: docker-manifest-check
+          client-payload: '{"version": "${{ needs.check-version-tag.outputs.version-tag }}"}'

@@ -47,9 +47,19 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Notify manifest builder
-        uses: peter-evans/repository-dispatch@v2
-        with:
-          token: ${{ secrets.REPO_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
-          event-type: docker-amd64-complete
-          client-payload: '{"version": "${{ env.VERSION }}", "status": "success"}'
+      - name: Update build status
+        run: |
+          # Create the status directory if it doesn't exist
+          mkdir -p /tmp/clickndebrid-docker-builds
+          
+          # Mark AMD64 build as complete
+          AMD64_FILE="/tmp/clickndebrid-docker-builds/AMD64_DONE"
+          echo "${{ env.VERSION }}" > "$AMD64_FILE"
+          echo "Marked AMD64 build as complete for version ${{ env.VERSION }}"
+          
+          # Log status for debugging
+          if [ -f "$AMD64_FILE" ]; then
+            echo "AMD64 status file exists and contains: $(cat $AMD64_FILE)"
+          else
+            echo "Failed to create AMD64 status file"
+          fi
