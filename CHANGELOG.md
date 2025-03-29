@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.31 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- fix(ci): use REPO_ACCESS_TOKEN as PAT (e495f23)
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- ci: fix workflow permission issue with repository_dispatch events (71797fc)
+
 ## 1.1.30 (2025-03-29)
 
 ### 🚀 Features
