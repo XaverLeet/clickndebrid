@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.1.18 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- No bug fixes
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- ci: increase commitlint character limits to allow verbose commit messages (9bbbd8b)
+- ci: implement proper CI/CD workflow for develop-to-main release process (23f31b8)
+
 ## 1.1.17 (2025-03-29)
 
 ### 🚀 Features
