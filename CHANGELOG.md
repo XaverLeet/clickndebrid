@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.1.36 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- No bug fixes
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- build: updated .devcontainer (5077e58)
+- ci: fix manifest job skipping issue with persistent file tracking (94f4a5f)
+
 ## 1.1.35 (2025-03-29)
 
 ### 🚀 Features
