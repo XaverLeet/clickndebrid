@@ -50,6 +50,6 @@ jobs:
       - name: Notify manifest builder
         uses: peter-evans/repository-dispatch@v2
         with:
-          token: ${{ secrets.REPO_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.WORKFLOW_PAT || secrets.GITHUB_TOKEN }}
           event-type: docker-arm64-complete
           client-payload: '{"version": "${{ env.VERSION }}", "status": "success"}'

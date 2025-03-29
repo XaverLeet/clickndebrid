@@ -32,13 +32,18 @@ jobs:
           source "$STATUS_FILE"
 
           # Update status based on the event type
-          if [ "${{ github.event.event_type }}" == "docker-amd64-complete" ]; then
+          echo "Event name: ${{ github.event_name }}"
+          echo "Event action: ${{ github.event.action }}"
+          
+          if [ "${{ github.event_name }}" == "repository_dispatch" ] && [ "${{ github.event.action }}" == "docker-amd64-complete" ]; then
+            echo "Updating AMD64 status to success"
             echo "AMD64_STATUS=success" > "$STATUS_FILE"
             echo "ARM64_STATUS=$ARM64_STATUS" >> "$STATUS_FILE"
             echo "VERSION=${{ github.event.client_payload.version }}" >> "$STATUS_FILE"
           fi
 
-          if [ "${{ github.event.event_type }}" == "docker-arm64-complete" ]; then
+          if [ "${{ github.event_name }}" == "repository_dispatch" ] && [ "${{ github.event.action }}" == "docker-arm64-complete" ]; then
+            echo "Updating ARM64 status to success"
             echo "AMD64_STATUS=$AMD64_STATUS" > "$STATUS_FILE"
             echo "ARM64_STATUS=success" >> "$STATUS_FILE"
             echo "VERSION=${{ github.event.client_payload.version }}" >> "$STATUS_FILE"
@@ -52,15 +57,33 @@ jobs:
           echo "arm64-status=${ARM64_STATUS}" >> $GITHUB_OUTPUT
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
 
+          # Current state debugging
+          echo "Current AMD64 Status: $AMD64_STATUS"
+          echo "Current ARM64 Status: $ARM64_STATUS"
+          echo "Current VERSION: $VERSION"
+          
           # Determine if we're ready to build the manifest
-          if [ "$AMD64_STATUS" == "success" ] && [ "$ARM64_STATUS" == "success" ]; then
+          if [ "$AMD64_STATUS" == "success" ] && [ "$ARM64_STATUS" == "success" ] && [ -n "$VERSION" ]; then
+            echo "Both architectures are ready, proceeding with manifest creation"
             echo "ready=true" >> $GITHUB_OUTPUT
             # Reset status file for next build
             echo "AMD64_STATUS=pending" > "$STATUS_FILE"
             echo "ARM64_STATUS=pending" >> "$STATUS_FILE"
             echo "VERSION=" >> "$STATUS_FILE"
           else
+            echo "Not all conditions met, skipping manifest creation"
             echo "ready=false" >> $GITHUB_OUTPUT
+            
+            # Show what's missing
+            if [ "$AMD64_STATUS" != "success" ]; then
+              echo "AMD64 build not complete"
+            fi
+            if [ "$ARM64_STATUS" != "success" ]; then
+              echo "ARM64 build not complete"
+            fi
+            if [ -z "$VERSION" ]; then
+              echo "No version specified"
+            fi
           fi
 
   create-manifest:
@@ -86,6 +109,12 @@ jobs:
           VERSION_NO_V="${VERSION#v}"
           echo "VERSION=${VERSION}" >> $GITHUB_ENV
           echo "VERSION_NO_V=${VERSION_NO_V}" >> $GITHUB_ENV
+          
+          # Debug information
+          echo "Ready to create manifest: ${{ needs.check-build-status.outputs.ready }}"
+          echo "AMD64 status: ${{ needs.check-build-status.outputs.amd64-status }}"
+          echo "ARM64 status: ${{ needs.check-build-status.outputs.arm64-status }}"
+          echo "Version: ${{ needs.check-build-status.outputs.version }}"
 
       - name: Create and push Docker manifest
         run: |
