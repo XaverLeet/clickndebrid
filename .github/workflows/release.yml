@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - main
+  repository_dispatch:
+    types: [manual-release]
 
 jobs:
   check-version-tag:
@@ -20,17 +22,34 @@ jobs:
       - name: Check if commit has version tag
         id: check
         run: |
-          # Get the most recent tag pointing to the current commit
-          VERSION_TAG=$(git tag --points-at HEAD | grep '^v[0-9]' | sort -V | tail -n 1)
-          
-          # Check if we found a version tag
-          if [ -n "$VERSION_TAG" ]; then
-            echo "has-version-tag=true" >> $GITHUB_OUTPUT
-            echo "version-tag=${VERSION_TAG}" >> $GITHUB_OUTPUT
-            echo "Found version tag: ${VERSION_TAG}, proceeding with release"
+          # Check if this is a repository_dispatch event
+          if [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
+            # For repository_dispatch events, use the version from client_payload
+            VERSION_TAG="${{ github.event.client_payload.version }}"
+            echo "Running from repository_dispatch with version: ${VERSION_TAG}"
+            
+            # Verify the tag exists
+            if git show-ref --tags --quiet --verify -- "refs/tags/${VERSION_TAG}"; then
+              echo "has-version-tag=true" >> $GITHUB_OUTPUT
+              echo "version-tag=${VERSION_TAG}" >> $GITHUB_OUTPUT
+              echo "Found version tag: ${VERSION_TAG}, proceeding with release"
+            else
+              echo "has-version-tag=false" >> $GITHUB_OUTPUT
+              echo "Version tag ${VERSION_TAG} not found, skipping release"
+            fi
           else
-            echo "has-version-tag=false" >> $GITHUB_OUTPUT
-            echo "No version tag found on this commit, skipping release"
+            # For push events, check if the commit has a version tag
+            VERSION_TAG=$(git tag --points-at HEAD | grep '^v[0-9]' | sort -V | tail -n 1)
+            
+            # Check if we found a version tag
+            if [ -n "$VERSION_TAG" ]; then
+              echo "has-version-tag=true" >> $GITHUB_OUTPUT
+              echo "version-tag=${VERSION_TAG}" >> $GITHUB_OUTPUT
+              echo "Found version tag: ${VERSION_TAG}, proceeding with release"
+            else
+              echo "has-version-tag=false" >> $GITHUB_OUTPUT
+              echo "No version tag found on this commit, skipping release"
+            fi
           fi
 
   build:
