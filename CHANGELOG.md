@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.28 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- No bug fixes
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- ci: radically simplify Docker manifest handling for enhanced reliability (946cf09)
+
 ## 1.1.27 (2025-03-29)
 
 ### 🚀 Features
