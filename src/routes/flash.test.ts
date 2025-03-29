@@ -6,11 +6,24 @@
 import { Request, Response } from "express";
 import { jest } from "@jest/globals";
 
+// Define Express Router as an any type to avoid complex type issues
+// In a real application, we would define a proper type for the Express Router
+type ExpressRouter = any;
+
 // Create mock implementations with detailed test data
-const mockCnlService = { submitToDestinationService: jest.fn() };
-const mockCryptoService = { decrypt: jest.fn(), encrypt: jest.fn() };
-const mockDebridService = { processRequest: jest.fn() };
-const mockCacheService = { set: jest.fn() };
+const mockCnlService = {
+  submitToDestinationService: jest.fn(),
+};
+const mockCryptoService = {
+  decrypt: jest.fn(),
+  encrypt: jest.fn(),
+};
+const mockDebridService = {
+  processRequest: jest.fn(),
+};
+const mockCacheService = {
+  set: jest.fn(),
+};
 const mockGetCacheService = jest.fn();
 const mockLoggerService = {
   debug: jest.fn(),
@@ -47,19 +60,25 @@ jest.unstable_mockModule("../config/index.js", () => ({
   config: mockConfig,
 }));
 
-// Set up mock implementations
+// Set up mock implementations with type assertions to avoid TS errors
+// @ts-expect-error - mockResolvedValue expects specific return type
 mockCnlService.submitToDestinationService.mockResolvedValue("encryptedResponse");
 
-mockCryptoService.decrypt.mockImplementation((data) => ({
-  ...data,
-  decrypted: "http://example.com/file.zip\nhttp://example.com/file2.zip",
-}));
+mockCryptoService.decrypt.mockImplementation((data: unknown) => {
+  return {
+    ...(data as Record<string, unknown>),
+    decrypted: "http://example.com/file.zip\nhttp://example.com/file2.zip",
+  };
+});
 
-mockCryptoService.encrypt.mockImplementation((data) => ({
-  ...data,
-  crypted: "encrypted-data-response",
-}));
+mockCryptoService.encrypt.mockImplementation((data: unknown) => {
+  return {
+    ...(data as Record<string, unknown>),
+    crypted: "encrypted-data-response",
+  };
+});
 
+// @ts-expect-error - mockResolvedValue expects specific return type
 mockDebridService.processRequest.mockResolvedValue({
   results: [
     {
@@ -91,12 +110,13 @@ mockDebridService.processRequest.mockResolvedValue({
 });
 
 mockGetCacheService.mockReturnValue(mockCacheService);
+// @ts-expect-error - mockResolvedValue expects specific return type
 mockCacheService.set.mockResolvedValue(true);
 
 describe("Flash Routes", () => {
   let req: Partial<Request>;
   let res: Partial<Response>;
-  let router: any;
+  let router: ExpressRouter;
 
   // We need to import dynamically to ensure mocks are set up first
   beforeAll(async () => {
@@ -118,10 +138,15 @@ describe("Flash Routes", () => {
       },
     };
 
+    // Create a properly typed mock response
+    const mockStatus = jest.fn().mockReturnThis();
+    const mockSend = jest.fn().mockReturnThis();
+    const mockJson = jest.fn().mockReturnThis();
+
     res = {
-      status: jest.fn().mockReturnThis(),
-      send: jest.fn(),
-      json: jest.fn(),
+      status: mockStatus as unknown as Response["status"],
+      send: mockSend as unknown as Response["send"],
+      json: mockJson as unknown as Response["json"],
     };
   });
 
@@ -190,7 +215,8 @@ describe("Flash Routes", () => {
 
     it("handles errors from destination service", async () => {
       // Setup the test to trigger an error in submitToDestinationService
-      mockCnlService.submitToDestinationService.mockRejectedValueOnce(
+      // Using any type to bypass type checking for the error value
+      (mockCnlService.submitToDestinationService.mockRejectedValueOnce as any)(
         new Error("Destination service error")
       );
 

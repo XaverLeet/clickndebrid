@@ -42,7 +42,10 @@ export function createMock<T extends object>(overrides: Partial<T> = {}): T {
 
           // Copy all properties from originalFn to newFn
           Object.keys(originalFn).forEach((key) => {
-            newFn[key] = originalFn[key];
+            // Use type assertion to unknown first to avoid TypeScript errors
+            (newFn as unknown as Record<string, unknown>)[key] = (
+              originalFn as unknown as Record<string, unknown>
+            )[key];
           });
 
           return newFn;
