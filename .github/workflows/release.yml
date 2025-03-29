@@ -177,6 +177,9 @@ jobs:
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           
+          # Enable experimental Docker CLI features for manifest commands
+          export DOCKER_CLI_EXPERIMENTAL=enabled
+          
           # Create manifest for version tag
           docker manifest create ghcr.io/${REPO}:${VERSION} \
             ghcr.io/${REPO}:${VERSION}-amd64 \
@@ -186,6 +189,12 @@ jobs:
           docker manifest create ghcr.io/${REPO}:latest \
             ghcr.io/${REPO}:${VERSION}-amd64 \
             ghcr.io/${REPO}:${VERSION}-arm64
+          
+          # Annotate manifests with platform info
+          docker manifest annotate ghcr.io/${REPO}:${VERSION} ghcr.io/${REPO}:${VERSION}-amd64 --os linux --arch amd64
+          docker manifest annotate ghcr.io/${REPO}:${VERSION} ghcr.io/${REPO}:${VERSION}-arm64 --os linux --arch arm64
+          docker manifest annotate ghcr.io/${REPO}:latest ghcr.io/${REPO}:${VERSION}-amd64 --os linux --arch amd64
+          docker manifest annotate ghcr.io/${REPO}:latest ghcr.io/${REPO}:${VERSION}-arm64 --os linux --arch arm64
           
           # Push manifests
           docker manifest push ghcr.io/${REPO}:${VERSION}
