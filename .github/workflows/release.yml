@@ -252,100 +252,46 @@ jobs:
           AMD64_FOUND=false
           ARM64_FOUND=false
           
-          # Check if AMD64 image exists with FULL_VERSION tag and get its digest
-          AMD64_DIGEST=""
+          # Check if AMD64 image exists with FULL_VERSION tag format
           if docker manifest inspect ghcr.io/${REPO}:${AMD64_TAG} >/dev/null 2>&1; then
             echo "Found AMD64 image with tag: ${AMD64_TAG}"
-            # Get the digest of the specific AMD64 image, not a manifest list
-            AMD64_DIGEST=$(docker manifest inspect ghcr.io/${REPO}:${AMD64_TAG} | jq -r '.manifests[] | select(.platform.architecture == "amd64") | .digest' 2>/dev/null)
-            if [ -n "$AMD64_DIGEST" ]; then
-              echo "Found AMD64 specific digest: $AMD64_DIGEST"
-              AMD64_TAG="sha256:$AMD64_DIGEST"
-              AMD64_FOUND=true
-            else
-              # If not a manifest list, use the direct digest
-              AMD64_DIGEST=$(docker manifest inspect ghcr.io/${REPO}:${AMD64_TAG} | jq -r '.config.digest' 2>/dev/null)
-              if [ -n "$AMD64_DIGEST" ]; then
-                echo "Found AMD64 direct digest: $AMD64_DIGEST"
-                AMD64_TAG="sha256:$AMD64_DIGEST"
-                AMD64_FOUND=true
-              else
-                echo "Could not find AMD64 image digest, will use tag reference"
-                AMD64_FOUND=true
-              fi
+            AMD64_FOUND=true
+            # Check if this is a manifest list
+            if docker manifest inspect ghcr.io/${REPO}:${AMD64_TAG} | grep -q "manifests"; then
+              echo "Detected that ${AMD64_TAG} is a manifest list, using tag reference to prevent errors"
             fi
           else
             echo "AMD64 image not found with tag: ${AMD64_TAG}, checking alternate format..."
             # Check with version without 'v' prefix
             if docker manifest inspect ghcr.io/${REPO}:${VERSION}-amd64 >/dev/null 2>&1; then
               echo "Found AMD64 image with tag: ${VERSION}-amd64"
-              # Get the digest of the specific AMD64 image
-              AMD64_DIGEST=$(docker manifest inspect ghcr.io/${REPO}:${VERSION}-amd64 | jq -r '.manifests[] | select(.platform.architecture == "amd64") | .digest' 2>/dev/null)
-              if [ -n "$AMD64_DIGEST" ]; then
-                echo "Found AMD64 specific digest: $AMD64_DIGEST"
-                AMD64_TAG="sha256:$AMD64_DIGEST"
-                AMD64_FOUND=true
-              else
-                # If not a manifest list, use the direct digest
-                AMD64_DIGEST=$(docker manifest inspect ghcr.io/${REPO}:${VERSION}-amd64 | jq -r '.config.digest' 2>/dev/null)
-                if [ -n "$AMD64_DIGEST" ]; then
-                  echo "Found AMD64 direct digest: $AMD64_DIGEST"
-                  AMD64_TAG="sha256:$AMD64_DIGEST"
-                  AMD64_FOUND=true
-                else
-                  echo "Could not find AMD64 image digest, will use tag reference"
-                  AMD64_TAG="${VERSION}-amd64"
-                  AMD64_FOUND=true
-                fi
+              AMD64_TAG="${VERSION}-amd64"
+              AMD64_FOUND=true
+              # Check if this is a manifest list
+              if docker manifest inspect ghcr.io/${REPO}:${AMD64_TAG} | grep -q "manifests"; then
+                echo "Detected that ${AMD64_TAG} is a manifest list, using tag reference to prevent errors"
               fi
             fi
           fi
           
-          # Check if ARM64 image exists with FULL_VERSION tag and get its digest
-          ARM64_DIGEST=""
+          # Check if ARM64 image exists with FULL_VERSION tag format
           if docker manifest inspect ghcr.io/${REPO}:${ARM64_TAG} >/dev/null 2>&1; then
             echo "Found ARM64 image with tag: ${ARM64_TAG}"
-            # Get the digest of the specific ARM64 image, not a manifest list
-            ARM64_DIGEST=$(docker manifest inspect ghcr.io/${REPO}:${ARM64_TAG} | jq -r '.manifests[] | select(.platform.architecture == "arm64") | .digest' 2>/dev/null)
-            if [ -n "$ARM64_DIGEST" ]; then
-              echo "Found ARM64 specific digest: $ARM64_DIGEST"
-              ARM64_TAG="sha256:$ARM64_DIGEST"
-              ARM64_FOUND=true
-            else
-              # If not a manifest list, use the direct digest
-              ARM64_DIGEST=$(docker manifest inspect ghcr.io/${REPO}:${ARM64_TAG} | jq -r '.config.digest' 2>/dev/null)
-              if [ -n "$ARM64_DIGEST" ]; then
-                echo "Found ARM64 direct digest: $ARM64_DIGEST"
-                ARM64_TAG="sha256:$ARM64_DIGEST"
-                ARM64_FOUND=true
-              else
-                echo "Could not find ARM64 image digest, will use tag reference"
-                ARM64_FOUND=true
-              fi
+            ARM64_FOUND=true
+            # Check if this is a manifest list
+            if docker manifest inspect ghcr.io/${REPO}:${ARM64_TAG} | grep -q "manifests"; then
+              echo "Detected that ${ARM64_TAG} is a manifest list, using tag reference to prevent errors"
             fi
           else
             echo "ARM64 image not found with tag: ${ARM64_TAG}, checking alternate format..."
             # Check with version without 'v' prefix
             if docker manifest inspect ghcr.io/${REPO}:${VERSION}-arm64 >/dev/null 2>&1; then
               echo "Found ARM64 image with tag: ${VERSION}-arm64"
-              # Get the digest of the specific ARM64 image
-              ARM64_DIGEST=$(docker manifest inspect ghcr.io/${REPO}:${VERSION}-arm64 | jq -r '.manifests[] | select(.platform.architecture == "arm64") | .digest' 2>/dev/null)
-              if [ -n "$ARM64_DIGEST" ]; then
-                echo "Found ARM64 specific digest: $ARM64_DIGEST"
-                ARM64_TAG="sha256:$ARM64_DIGEST"
-                ARM64_FOUND=true
-              else
-                # If not a manifest list, use the direct digest
-                ARM64_DIGEST=$(docker manifest inspect ghcr.io/${REPO}:${VERSION}-arm64 | jq -r '.config.digest' 2>/dev/null)
-                if [ -n "$ARM64_DIGEST" ]; then
-                  echo "Found ARM64 direct digest: $ARM64_DIGEST"
-                  ARM64_TAG="sha256:$ARM64_DIGEST"
-                  ARM64_FOUND=true
-                else
-                  echo "Could not find ARM64 image digest, will use tag reference"
-                  ARM64_TAG="${VERSION}-arm64"
-                  ARM64_FOUND=true
-                fi
+              ARM64_TAG="${VERSION}-arm64"
+              ARM64_FOUND=true
+              # Check if this is a manifest list
+              if docker manifest inspect ghcr.io/${REPO}:${ARM64_TAG} | grep -q "manifests"; then
+                echo "Detected that ${ARM64_TAG} is a manifest list, using tag reference to prevent errors"
               fi
             fi
           fi
@@ -363,22 +309,14 @@ jobs:
           # Skip the pull step which would fail for the ARM64 image on an AMD64 runner
           echo "Using images without pulling them locally (skipping pull to avoid arch compatibility issues)..."
           
-          # Prepare the image references correctly based on whether we're using digests or tags
-          if [[ "$AMD64_TAG" == sha256:* ]]; then
-            AMD64_REF="ghcr.io/${REPO}@${AMD64_TAG}"
-            echo "  - ${AMD64_REF} (using digest)"
-          else
-            AMD64_REF="ghcr.io/${REPO}:${AMD64_TAG}"
-            echo "  - ${AMD64_REF} (using tag)"
-          fi
+          # Create the image references using the tags
+          AMD64_REF="ghcr.io/${REPO}:${AMD64_TAG}"
+          ARM64_REF="ghcr.io/${REPO}:${ARM64_TAG}"
           
-          if [[ "$ARM64_TAG" == sha256:* ]]; then
-            ARM64_REF="ghcr.io/${REPO}@${ARM64_TAG}"
-            echo "  - ${ARM64_REF} (using digest)"
-          else
-            ARM64_REF="ghcr.io/${REPO}:${ARM64_TAG}"
-            echo "  - ${ARM64_REF} (using tag)"
-          fi
+          # Debug info
+          echo "Using the following image references:"
+          echo "  - ${AMD64_REF}"
+          echo "  - ${ARM64_REF}"
           
           # Create the version manifest (with and without v prefix)
           # Use insecure flag to work around potential registry issues with cross-architecture manifests
