@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.39 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- No bug fixes
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- ci: fix Docker manifest creation workflow to properly wait for both builds (4d3405e)
+
 ## 1.1.38 (2025-03-29)
 
 ### 🚀 Features
