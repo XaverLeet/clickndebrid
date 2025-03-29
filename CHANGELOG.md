@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.37 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- No bug fixes
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- ci: improve manifest creation with image verification (25574cb)
+
 ## 1.1.36 (2025-03-29)
 
 ### 🚀 Features
