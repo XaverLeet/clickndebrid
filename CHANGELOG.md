@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.1.13 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- No bug fixes
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- ci: fix multi-architecture Docker manifest creation (6b55d5b)
+- ci: fix tag filtering in CI workflow (a8c8719)
+
 ## 1.1.12 (2025-03-29)
 
 ### 🚀 Features
