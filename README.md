@@ -239,6 +239,15 @@ See our [Semantic Versioning Guide](./docs/semver.md) for detailed information o
 
 We follow [Conventional Commits](https://www.conventionalcommits.org/) with support for verbose commit messages. See our [Semantic Versioning Guide](./docs/semver.md) for details on commit message conventions.
 
+### Repository PAT for Workflows
+
+The Docker multi-architecture build workflow requires a Personal Access Token (PAT) with the `repo` scope for triggering repository_dispatch events. You need to:
+
+1. Create a [Personal Access Token](https://github.com/settings/tokens) with the `repo` scope
+2. Add it to your repository secrets as `WORKFLOW_PAT`
+
+This is required for the Docker build workflows to communicate with each other when building multi-architecture images.
+
 ## License
 
 This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.

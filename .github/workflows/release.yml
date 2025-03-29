@@ -115,17 +115,19 @@ jobs:
     needs: [check-version-tag, build]
     if: needs.check-version-tag.outputs.has-version-tag == 'true'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Trigger AMD64 build
         uses: peter-evans/repository-dispatch@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.WORKFLOW_PAT || secrets.GITHUB_TOKEN }}
           event-type: build-docker-amd64
           client-payload: '{"version": "${{ needs.check-version-tag.outputs.version-tag }}"}'
       
       - name: Trigger ARM64 build
         uses: peter-evans/repository-dispatch@v2
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.WORKFLOW_PAT || secrets.GITHUB_TOKEN }}
           event-type: build-docker-arm64
           client-payload: '{"version": "${{ needs.check-version-tag.outputs.version-tag }}"}'
