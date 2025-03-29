@@ -56,78 +56,60 @@ jobs:
           
           echo "Event name: ${{ github.event_name }}"
           
-          # Wait and check loop
-          while [ $CURRENT_ATTEMPT -lt $MAX_ATTEMPTS ]; do
-            echo "Check attempt $((CURRENT_ATTEMPT+1)) of $MAX_ATTEMPTS"
-            
-            # Debug downloaded artifacts
-            echo "Checking build status artifacts:"
-            mkdir -p build-status
-            ls -la build-status/ || echo "No files found in build-status directory"
-            
-            # Check AMD64 build status
-            if [ -f build-status/amd64-complete ]; then
-              AMD64_STATUS="success"
-              AMD64_VERSION=$(cat build-status/amd64-complete)
-              echo "AMD64 build is complete (version: $AMD64_VERSION)"
-              if [ -f build-status/amd64-timestamp ]; then
-                echo "AMD64 build completed at: $(cat build-status/amd64-timestamp)"
-              fi
-              
-              # If VERSION isn't set yet, use this one
-              if [ -z "$VERSION" ]; then
-                VERSION="$AMD64_VERSION"
-                echo "Setting version from AMD64 build: $VERSION"
-              fi
-            else
-              echo "AMD64 build is not complete (check attempt $((CURRENT_ATTEMPT+1)))"
+          # Check build status
+          # Debug downloaded artifacts
+          echo "Checking build status artifacts:"
+          mkdir -p build-status
+          ls -la build-status/ || echo "No files found in build-status directory"
+          
+          # Check AMD64 build status
+          if [ -f build-status/amd64-complete ]; then
+            AMD64_STATUS="success"
+            AMD64_VERSION=$(cat build-status/amd64-complete)
+            echo "AMD64 build is complete (version: $AMD64_VERSION)"
+            if [ -f build-status/amd64-timestamp ]; then
+              echo "AMD64 build completed at: $(cat build-status/amd64-timestamp)"
             fi
+            
+            # If VERSION isn't set yet, use this one
+            if [ -z "$VERSION" ]; then
+              VERSION="$AMD64_VERSION"
+              echo "Setting version from AMD64 build: $VERSION"
+            fi
+          else
+            echo "AMD64 build is not complete"
+          fi
 
-            # Check ARM64 build status
-            if [ -f build-status/arm64-complete ]; then
-              ARM64_STATUS="success"
-              ARM64_VERSION=$(cat build-status/arm64-complete)
-              echo "ARM64 build is complete (version: $ARM64_VERSION)"
-              if [ -f build-status/arm64-timestamp ]; then
-                echo "ARM64 build completed at: $(cat build-status/arm64-timestamp)"
-              fi
-              
-              # If VERSION isn't set yet, use this one
-              if [ -z "$VERSION" ]; then
-                VERSION="$ARM64_VERSION"
-                echo "Setting version from ARM64 build: $VERSION"
-              fi
-            else
-              echo "ARM64 build is not complete (check attempt $((CURRENT_ATTEMPT+1)))"
+          # Check ARM64 build status
+          if [ -f build-status/arm64-complete ]; then
+            ARM64_STATUS="success"
+            ARM64_VERSION=$(cat build-status/arm64-complete)
+            echo "ARM64 build is complete (version: $ARM64_VERSION)"
+            if [ -f build-status/arm64-timestamp ]; then
+              echo "ARM64 build completed at: $(cat build-status/arm64-timestamp)"
             fi
             
-            # Determine if we're ready to build the manifest
-            if [ "$AMD64_STATUS" == "success" ] && [ "$ARM64_STATUS" == "success" ]; then
-              echo "Both architectures are ready for version $VERSION, proceeding with manifest creation"
-              READY="true"
-              break
+            # If VERSION isn't set yet, use this one
+            if [ -z "$VERSION" ]; then
+              VERSION="$ARM64_VERSION"
+              echo "Setting version from ARM64 build: $VERSION"
             fi
-            
-            # If we're at the last attempt, stop checking
-            CURRENT_ATTEMPT=$((CURRENT_ATTEMPT+1))
-            if [ $CURRENT_ATTEMPT -ge $MAX_ATTEMPTS ]; then
-              echo "Reached maximum wait time ($WAIT_TIME minutes), giving up"
-              break
-            fi
-            
+          else
+            echo "ARM64 build is not complete"
+          fi
+          
+          # Determine if we're ready to build the manifest
+          if [ "$AMD64_STATUS" == "success" ] && [ "$ARM64_STATUS" == "success" ]; then
+            echo "Both architectures are ready for version $VERSION, proceeding with manifest creation"
+            READY="true"
+          elif [ "${{ github.event.inputs.wait_for_builds }}" == "false" ]; then
             # If wait_for_builds is false, don't wait
-            if [ "${{ github.event.inputs.wait_for_builds }}" == "false" ]; then
-              echo "wait_for_builds is false, not waiting for builds to complete"
-              break
-            fi
-            
-            # Wait before checking again
-            echo "Waiting $INTERVAL seconds before next check..."
-            sleep $INTERVAL
-            
-            # Re-download the artifacts before next check
-            rm -rf build-status/*
-          done
+            echo "wait_for_builds is false, not waiting for builds to complete"
+          else
+            # Need to wait for builds to complete
+            echo "Builds not complete yet, setting flag to wait and retry"
+            echo "need_redownload=true" >> $GITHUB_OUTPUT
+          fi
           
           # Set outputs for job conditions
           echo "amd64-status=$AMD64_STATUS" >> $GITHUB_OUTPUT
@@ -153,14 +135,14 @@ jobs:
             fi
           fi
       
-      # Re-download artifacts before next check
-      - name: Re-download artifacts
-        uses: actions/download-artifact@v3
-        with:
-          name: docker-build-status
-          path: build-status
-        continue-on-error: true
-        if: steps.check.outputs.ready != 'true'
+      # If we need to re-download artifacts, run the entire job again
+      - name: Re-run the job after waiting
+        if: steps.check.outputs.need_redownload == 'true'
+        run: |
+          echo "Artifacts not ready yet, re-running the job in 2 minutes to check again..."
+          sleep 120
+          # This will cause the workflow to fail, which will trigger GitHub Actions to retry the job
+          exit 1
 
   create-manifest:
     needs: check-build-status
