@@ -14,7 +14,6 @@ services:
     user: node
     ports:
       - "9666:9666"
-      - "9229:9229" # Debug port
     env_file:
       - .env
     depends_on:
@@ -22,8 +21,6 @@ services:
 
   redis:
     image: redis:alpine
-    ports:
-      - "6379:6379"
     volumes:
       - ./container_data/redis:/data
 volumes:
