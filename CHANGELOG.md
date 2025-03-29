@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.25 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- No bug fixes
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- ci: further improve Docker manifest creation with cross-architecture compatibility (0c75867)
+
 ## 1.1.24 (2025-03-29)
 
 ### 🚀 Features
