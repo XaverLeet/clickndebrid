@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.7 (2025-03-29)
+
+### Changes
+
+- chore: update package-lock.json to match v1.1.6 (f9f9158)
+
 ## 1.1.6 (2025-03-29)
 
 ### Changes
