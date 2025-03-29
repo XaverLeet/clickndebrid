@@ -143,7 +143,8 @@ jobs:
         with:
           images: ghcr.io/${{ env.REPO }}
           tags: |
-            type=semver,pattern={{version}}-amd64
+            type=raw,value=${{ needs.check-version-tag.outputs.version-tag }}-amd64,enable=${{ startsWith(needs.check-version-tag.outputs.version-tag, 'v') }}
+            type=raw,value=${{ needs.check-version-tag.outputs.version-tag }},prefix=,suffix=-amd64,enable=${{ startsWith(needs.check-version-tag.outputs.version-tag, 'v') }}
             type=ref,event=branch,suffix=-amd64
 
       - name: Build and push Docker image (AMD64)
@@ -190,7 +191,8 @@ jobs:
         with:
           images: ghcr.io/${{ env.REPO }}
           tags: |
-            type=semver,pattern={{version}}-arm64
+            type=raw,value=${{ needs.check-version-tag.outputs.version-tag }}-arm64,enable=${{ startsWith(needs.check-version-tag.outputs.version-tag, 'v') }}
+            type=raw,value=${{ needs.check-version-tag.outputs.version-tag }},prefix=,suffix=-arm64,enable=${{ startsWith(needs.check-version-tag.outputs.version-tag, 'v') }}
             type=ref,event=branch,suffix=-arm64
 
       - name: Build and push Docker image (ARM64)
@@ -227,8 +229,8 @@ jobs:
           
       - name: Create and push multi-arch manifest
         run: |
-          VERSION=${{ needs.check-version-tag.outputs.version-tag }}
-          VERSION=${VERSION#v}
+          FULL_VERSION=${{ needs.check-version-tag.outputs.version-tag }}
+          VERSION=${FULL_VERSION#v}
           
           # Use docker manifest command directly which is simpler and has better error handling
           echo "Using Docker manifest command to create multi-architecture manifests..."
@@ -238,59 +240,108 @@ jobs:
           
           # Wait a moment to ensure images are fully available
           echo "Waiting for images to be fully available..."
-          sleep 10
+          sleep 15
           
-          # First pull the images to ensure they're in the local cache
-          echo "Pulling AMD64 image..."
-          docker pull ghcr.io/${REPO}:${VERSION}-amd64 || {
-            echo "Failed to pull AMD64 image, checking if it exists..."
-            docker manifest inspect ghcr.io/${REPO}:${VERSION}-amd64 || {
-              echo "AMD64 image doesn't exist!"
-              # List available tags to debug
-              echo "Available tags:"
-              curl -s -H "Authorization: Bearer $(echo ${{ secrets.GITHUB_TOKEN }} | base64)" \
-                   "https://ghcr.io/v2/${REPO}/tags/list" | jq .
-              exit 1
-            }
-          }
+          # First check if the images exist with the full version tag (including v)
+          echo "Checking for images with tag: ${FULL_VERSION}-amd64 and ${FULL_VERSION}-arm64"
           
-          echo "Pulling ARM64 image..."
-          docker pull ghcr.io/${REPO}:${VERSION}-arm64 || {
-            echo "Failed to pull ARM64 image, checking if it exists..."
-            docker manifest inspect ghcr.io/${REPO}:${VERSION}-arm64 || {
-              echo "ARM64 image doesn't exist!"
-              # List available tags to debug
-              echo "Available tags:"
-              curl -s -H "Authorization: Bearer $(echo ${{ secrets.GITHUB_TOKEN }} | base64)" \
-                   "https://ghcr.io/v2/${REPO}/tags/list" | jq .
-              exit 1
-            }
-          }
+          # Try pulling with the full version tag (including v)
+          AMD64_TAG="${FULL_VERSION}-amd64"
+          ARM64_TAG="${FULL_VERSION}-arm64"
           
-          # Create the version manifest
+          AMD64_FOUND=false
+          ARM64_FOUND=false
+          
+          # Check if AMD64 image exists with FULL_VERSION tag
+          if docker manifest inspect ghcr.io/${REPO}:${AMD64_TAG} >/dev/null 2>&1; then
+            echo "Found AMD64 image with tag: ${AMD64_TAG}"
+            AMD64_FOUND=true
+          else
+            echo "AMD64 image not found with tag: ${AMD64_TAG}, checking alternate format..."
+            # Check with version without 'v' prefix
+            if docker manifest inspect ghcr.io/${REPO}:${VERSION}-amd64 >/dev/null 2>&1; then
+              echo "Found AMD64 image with tag: ${VERSION}-amd64"
+              AMD64_TAG="${VERSION}-amd64"
+              AMD64_FOUND=true
+            fi
+          fi
+          
+          # Check if ARM64 image exists with FULL_VERSION tag
+          if docker manifest inspect ghcr.io/${REPO}:${ARM64_TAG} >/dev/null 2>&1; then
+            echo "Found ARM64 image with tag: ${ARM64_TAG}"
+            ARM64_FOUND=true
+          else
+            echo "ARM64 image not found with tag: ${ARM64_TAG}, checking alternate format..."
+            # Check with version without 'v' prefix
+            if docker manifest inspect ghcr.io/${REPO}:${VERSION}-arm64 >/dev/null 2>&1; then
+              echo "Found ARM64 image with tag: ${VERSION}-arm64"
+              ARM64_TAG="${VERSION}-arm64"
+              ARM64_FOUND=true
+            fi
+          fi
+          
+          # If images aren't found with either format, list available tags and exit
+          if [ "$AMD64_FOUND" != "true" ] || [ "$ARM64_FOUND" != "true" ]; then
+            echo "Could not find required architecture images!"
+            echo "Available tags:"
+            curl -s -H "Authorization: Bearer $(echo ${{ secrets.GITHUB_TOKEN }} | base64)" \
+                 "https://ghcr.io/v2/${REPO}/tags/list" | jq .
+            exit 1
+          fi
+          
+          # Pull the images to ensure they're in the local cache
+          echo "Pulling AMD64 image with tag: ${AMD64_TAG}..."
+          docker pull ghcr.io/${REPO}:${AMD64_TAG}
+          
+          echo "Pulling ARM64 image with tag: ${ARM64_TAG}..."
+          docker pull ghcr.io/${REPO}:${ARM64_TAG}
+          
+          # Create the version manifest (with and without v prefix)
           echo "Creating version manifest for ${VERSION}..."
           docker manifest create ghcr.io/${REPO}:${VERSION} \
             --amend \
-            ghcr.io/${REPO}:${VERSION}-amd64 \
-            ghcr.io/${REPO}:${VERSION}-arm64
+            ghcr.io/${REPO}:${AMD64_TAG} \
+            ghcr.io/${REPO}:${ARM64_TAG}
+          
+          # Also create a manifest with the full version tag if it starts with v
+          if [[ "${FULL_VERSION}" == v* ]]; then
+            echo "Creating version manifest for ${FULL_VERSION}..."
+            docker manifest create ghcr.io/${REPO}:${FULL_VERSION} \
+              --amend \
+              ghcr.io/${REPO}:${AMD64_TAG} \
+              ghcr.io/${REPO}:${ARM64_TAG}
+          fi
           
           # Create the latest manifest
           echo "Creating latest manifest..."
           docker manifest create ghcr.io/${REPO}:latest \
             --amend \
-            ghcr.io/${REPO}:${VERSION}-amd64 \
-            ghcr.io/${REPO}:${VERSION}-arm64
+            ghcr.io/${REPO}:${AMD64_TAG} \
+            ghcr.io/${REPO}:${ARM64_TAG}
           
           # Add platform annotations to the manifests
           echo "Adding platform annotations..."
-          docker manifest annotate ghcr.io/${REPO}:${VERSION} ghcr.io/${REPO}:${VERSION}-amd64 --os linux --arch amd64
-          docker manifest annotate ghcr.io/${REPO}:${VERSION} ghcr.io/${REPO}:${VERSION}-arm64 --os linux --arch arm64
-          docker manifest annotate ghcr.io/${REPO}:latest ghcr.io/${REPO}:${VERSION}-amd64 --os linux --arch amd64
-          docker manifest annotate ghcr.io/${REPO}:latest ghcr.io/${REPO}:${VERSION}-arm64 --os linux --arch arm64
+          docker manifest annotate ghcr.io/${REPO}:${VERSION} ghcr.io/${REPO}:${AMD64_TAG} --os linux --arch amd64
+          docker manifest annotate ghcr.io/${REPO}:${VERSION} ghcr.io/${REPO}:${ARM64_TAG} --os linux --arch arm64
+          
+          # Also annotate the manifest with the full version tag if it starts with v
+          if [[ "${FULL_VERSION}" == v* ]]; then
+            docker manifest annotate ghcr.io/${REPO}:${FULL_VERSION} ghcr.io/${REPO}:${AMD64_TAG} --os linux --arch amd64
+            docker manifest annotate ghcr.io/${REPO}:${FULL_VERSION} ghcr.io/${REPO}:${ARM64_TAG} --os linux --arch arm64
+          fi
+          
+          docker manifest annotate ghcr.io/${REPO}:latest ghcr.io/${REPO}:${AMD64_TAG} --os linux --arch amd64
+          docker manifest annotate ghcr.io/${REPO}:latest ghcr.io/${REPO}:${ARM64_TAG} --os linux --arch arm64
           
           # Push the manifests
           echo "Pushing manifests..."
           docker manifest push ghcr.io/${REPO}:${VERSION}
+          
+          # Push the manifest with the full version tag if it starts with v
+          if [[ "${FULL_VERSION}" == v* ]]; then
+            docker manifest push ghcr.io/${REPO}:${FULL_VERSION}
+          fi
+          
           docker manifest push ghcr.io/${REPO}:latest
           
           echo "Multi-architecture manifests created successfully!"
