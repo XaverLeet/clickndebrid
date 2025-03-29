@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.26 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- No bug fixes
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- ci: fix Docker manifest creation for manifest list references (2d5d4de)
+
 ## 1.1.25 (2025-03-29)
 
 ### 🚀 Features
