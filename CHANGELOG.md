@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.1.22 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- No bug fixes
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- ci: optimize GitHub Actions workflow with descriptive event types (1f60059)
+- ci: update repository dispatch event type with descriptive release name (b4c7d09)
+
 ## 1.1.21 (2025-03-29)
 
 ### 🚀 Features
