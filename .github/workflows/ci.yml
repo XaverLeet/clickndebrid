@@ -3,13 +3,36 @@ name: CI
 on:
   push:
     branches: [develop]
+    tags: ['*']
     paths-ignore:
       - 'CHANGELOG.md'
   pull_request:
     branches: [main, develop]
 
 jobs:
+  check-if-version-tag:
+    runs-on: ubuntu-latest
+    outputs:
+      is-version-tag: ${{ steps.check-tag.outputs.is-version-tag }}
+    steps:
+      - name: Check if push is for a version tag
+        id: check-tag
+        run: |
+          # Extract tag name if this is a tag push
+          TAG_NAME="${GITHUB_REF#refs/tags/}"
+          
+          # Check if this is a tag push and if it starts with 'v'
+          if [[ "$GITHUB_REF" == refs/tags/* && "$TAG_NAME" == v* ]]; then
+            echo "This is a version tag push ($TAG_NAME), skipping CI workflow"
+            echo "is-version-tag=true" >> $GITHUB_OUTPUT
+          else
+            echo "Not a version tag, continuing with CI workflow"
+            echo "is-version-tag=false" >> $GITHUB_OUTPUT
+          fi
+
   build:
+    needs: check-if-version-tag
+    if: needs.check-if-version-tag.outputs.is-version-tag != 'true'
     runs-on: ubuntu-latest
 
     strategy:
