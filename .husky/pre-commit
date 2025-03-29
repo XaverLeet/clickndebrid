@@ -1,3 +1,7 @@
 #!/usr/bin/env bash
 
+# Auto-stage package-lock.json when package.json is modified
+./scripts/pre-commit.sh
+
+# Run lint-staged
 npx --no -- lint-staged

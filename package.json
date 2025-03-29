@@ -22,6 +22,7 @@
     "release:patch": "release-it patch",
     "release:auto": "./scripts/release.sh auto",
     "release:dry-run": "./scripts/release.sh --dry-run",
+    "commit:all": "git add . && git commit",
     "prepare": "husky"
   },
   "author": "XaverLeet",

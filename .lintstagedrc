@@ -3,7 +3,11 @@
     "eslint --fix",
     "prettier --write"
   ],
-  "*.{json,md}": [
+  "*.md": [
     "prettier --write"
-  ]
+  ],
+  "*.json": [
+    "prettier --write"
+  ],
+  "package-lock.json": []
 }
