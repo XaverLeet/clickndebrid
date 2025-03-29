@@ -3,8 +3,11 @@ name: CI
 on:
   push:
     branches: [main, develop]
-    tags-ignore:
-      - 'v*'
+    paths-ignore:
+      - 'CHANGELOG.md'
+    tags: 
+      - '**'
+      - '!v*'  # Exclude all version tags
   pull_request:
     branches: [main, develop]
 
