@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.6 (2025-03-29)
+
+### Changes
+
+- build: remove setup-husky.sh script (ef50db1)
+- fix: resolve TypeScript errors in test files (77b6125)
+- docs: update CLAUDE.md with testing guidelines (848b1a7)
+- build: improve testing and Docker infrastructure (ef4e4ef)
+- build: prebuilt docker image available (2a50de0)
+
 ## 1.1.5 (2025-03-03)
 
 ### Changes
