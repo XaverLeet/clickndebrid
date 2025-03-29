@@ -153,6 +153,21 @@ jobs:
         run: |
           # Enable Docker CLI experimental features
           export DOCKER_CLI_EXPERIMENTAL=enabled
+          
+          # Verify that images exist before creating the manifest
+          verify_image_exists() {
+            local IMAGE_TAG=$1
+            echo "Verifying image exists: ghcr.io/${REPO}:${IMAGE_TAG}"
+            
+            # Try to inspect the image (pull it if needed)
+            if docker pull ghcr.io/${REPO}:${IMAGE_TAG}; then
+              echo "✅ Image exists: ghcr.io/${REPO}:${IMAGE_TAG}"
+              return 0
+            else
+              echo "❌ Image does not exist: ghcr.io/${REPO}:${IMAGE_TAG}"
+              return 1
+            fi
+          }
 
           # Create function for creating and pushing manifests with retries
           create_and_push_manifest() {
@@ -163,7 +178,25 @@ jobs:
             local RETRY=0
             local SUCCESS=false
             
+            echo "Verifying both architecture images exist..."
+            
+            # Verify both images exist
+            if ! verify_image_exists "$AMD64_TAG"; then
+              echo "AMD64 image not found, cannot create manifest"
+              return 1
+            fi
+            
+            if ! verify_image_exists "$ARM64_TAG"; then
+              echo "ARM64 image not found, cannot create manifest"
+              return 1
+            fi
+            
             echo "Creating manifest for ${TAG}..."
+            
+            # List the images that will be used for manifest
+            echo "Images that will be used for manifest:"
+            echo " - ghcr.io/${REPO}:${AMD64_TAG} (AMD64)"
+            echo " - ghcr.io/${REPO}:${ARM64_TAG} (ARM64)"
             
             while [ $RETRY -lt $MAX_RETRIES ] && [ "$SUCCESS" = "false" ]; do
               if docker manifest create --insecure "ghcr.io/${REPO}:${TAG}" \
@@ -176,6 +209,8 @@ jobs:
                   
                 docker manifest annotate "ghcr.io/${REPO}:${TAG}" \
                   "ghcr.io/${REPO}:${ARM64_TAG}" --os linux --arch arm64
+                
+                echo "Manifest for ${TAG} created successfully, now pushing..."
                 
                 # Push with retry
                 PUSH_RETRY=0
@@ -203,6 +238,10 @@ jobs:
                   sleep 5
                 else
                   echo "Failed to create manifest after $MAX_RETRIES attempts"
+                  echo "The images might not be available or there could be an issue with the registry."
+                  # List available tags
+                  echo "Available tags for ${REPO}:"
+                  docker images "ghcr.io/${REPO}*"
                 fi
               fi
             done
