@@ -9,6 +9,7 @@
 - Lint: `npm run lint`
 - Format: `npm run format`
 - Debug: `npm run debug` or `npm run debug-brk`
+- Release: `npm run release:auto` (auto-determine version) or `npm run release:dry-run` (simulation)
 
 ## Testing Guidelines
 
@@ -31,7 +32,7 @@
   - Private members: \_prefix or private keyword
 - **Error Handling**: Try/catch for async, consistent API response format
 - **Imports**: Group by external, internal, relative paths
-- **Commits**: Follow conventional commits (feat, fix, docs, style, refactor, etc.)
+- **Commits**: Follow [conventional commits](https://www.conventionalcommits.org/) (feat, fix, docs, style, refactor, security, deps, etc.) as defined in [docs/semver.md](./docs/semver.md)
 
 Customize service functionality through the configuration in src/config/index.ts.
 

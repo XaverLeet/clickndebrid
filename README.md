@@ -193,13 +193,16 @@ See [Architecture Documentation](./docs/architecture.md) for details on the proj
 
 ## Release Process
 
-The project uses release-it for versioning and GitHub releases:
+The project uses [Semantic Versioning 2.0](https://semver.org/) with automated release management:
 
 ```bash
-# Release a new patch version
+# Automatically determine version based on commit history
 npm run release:auto
 
-# Release a minor or major version
+# Simulate a release without making changes
+npm run release:dry-run
+
+# Release a specific version type
 npm run release:auto minor
 npm run release:auto major
 
@@ -209,6 +212,8 @@ npm run release:auto -- --skip-tests
 # Set a specific version
 npm run release:auto -- --set-version=2.0.0
 ```
+
+See our [Semantic Versioning Guide](./docs/semver.md) for detailed information on our versioning rules, commit message conventions, and release process.
 
 For automated GitHub releases, create a `.env.release` file with your GitHub token:
 
@@ -223,6 +228,8 @@ GITHUB_TOKEN=your_github_token_here
 3. Commit your changes using conventional commits: `git commit -m "feat: add amazing feature"`
 4. Push to the branch: `git push origin feature/amazing-feature`
 5. Open a Pull Request
+
+We follow [Conventional Commits](https://www.conventionalcommits.org/) with support for verbose commit messages. See our [Semantic Versioning Guide](./docs/semver.md) for details on commit message conventions.
 
 ## License
 
