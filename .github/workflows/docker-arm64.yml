@@ -63,11 +63,12 @@ jobs:
           ls -la build-status/
           
       - name: Upload build status artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: docker-build-status
           path: build-status/
           retention-days: 1
+          overwrite: true
           
       - name: Notify build completion
         uses: peter-evans/repository-dispatch@v2

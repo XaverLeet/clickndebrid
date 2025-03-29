@@ -26,10 +26,11 @@ jobs:
     
     steps:
       - name: Download build status artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@v4
         with:
           name: docker-build-status
           path: build-status
+          merge-multiple: true
         continue-on-error: true
       
       - name: Re-download artifacts (every 2 minutes)
