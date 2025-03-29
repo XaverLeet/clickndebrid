@@ -180,48 +180,50 @@ jobs:
           # Enable experimental Docker CLI features for manifest commands
           export DOCKER_CLI_EXPERIMENTAL=enabled
           
-          # Using a completely different approach with Docker buildx
-          # This avoids issues with manifest lists containing manifest lists
+          # Using Docker manifest command directly which is designed for this purpose
+          echo "Creating and pushing manifest using docker manifest..."
           
-          echo "Creating and pushing manifest using buildx..."
+          # First attempt to directly access the images without pulling
+          # This avoids potential architecture compatibility issues
           
-          # Install Docker buildx if not already installed
-          docker buildx --help > /dev/null || { 
-            echo "Installing Docker buildx..."
-            mkdir -p ~/.docker/cli-plugins/
-            curl -sSL https://github.com/docker/buildx/releases/download/v0.12.0/buildx-v0.12.0.linux-amd64 -o ~/.docker/cli-plugins/docker-buildx
-            chmod a+x ~/.docker/cli-plugins/docker-buildx
-          }
+          # Check if the images exist
+          echo "Checking if images exist..."
           
-          # Create a new builder instance
-          docker buildx create --use --name multiarch-builder || docker buildx use multiarch-builder
+          # Use manifest inspect to check if images exist without pulling
+          echo "Checking AMD64 image..."
+          if ! docker manifest inspect ghcr.io/${REPO}:${VERSION}-amd64 > /dev/null 2>&1; then
+            echo "Error: AMD64 image not found"
+            exit 1
+          fi
           
-          # Pull both architecture images
-          echo "Pulling AMD64 image..."
-          docker pull ghcr.io/${REPO}:${VERSION}-amd64 || { echo "AMD64 image not found"; exit 1; }
+          echo "Checking ARM64 image..."
+          if ! docker manifest inspect ghcr.io/${REPO}:${VERSION}-arm64 > /dev/null 2>&1; then
+            echo "Error: ARM64 image not found"
+            exit 1
+          fi
           
-          echo "Pulling ARM64 image..."
-          docker pull ghcr.io/${REPO}:${VERSION}-arm64 || { echo "ARM64 image not found"; exit 1; }
-          
-          # Tag AMD64 and ARM64 images with temporary tags
-          docker tag ghcr.io/${REPO}:${VERSION}-amd64 ghcr.io/${REPO}:temp-amd64
-          docker tag ghcr.io/${REPO}:${VERSION}-arm64 ghcr.io/${REPO}:temp-arm64
-          
-          # Push with the temporary tags
-          docker push ghcr.io/${REPO}:temp-amd64
-          docker push ghcr.io/${REPO}:temp-arm64
-          
-          # Use imagetools to create the manifest
+          # Create version manifest with --insecure option
           echo "Creating version manifest..."
-          docker buildx imagetools create --tag ghcr.io/${REPO}:${VERSION} \
-            ghcr.io/${REPO}:temp-amd64 \
-            ghcr.io/${REPO}:temp-arm64
+          docker manifest create --insecure ghcr.io/${REPO}:${VERSION} \
+            ghcr.io/${REPO}:${VERSION}-amd64 \
+            ghcr.io/${REPO}:${VERSION}-arm64
           
+          # Create latest manifest with --insecure option
           echo "Creating latest manifest..."
-          docker buildx imagetools create --tag ghcr.io/${REPO}:latest \
-            ghcr.io/${REPO}:temp-amd64 \
-            ghcr.io/${REPO}:temp-arm64
+          docker manifest create --insecure ghcr.io/${REPO}:latest \
+            ghcr.io/${REPO}:${VERSION}-amd64 \
+            ghcr.io/${REPO}:${VERSION}-arm64
           
-          # Clean up temporary tags
-          echo "Cleaning up temporary tags..."
-          docker rmi ghcr.io/${REPO}:temp-amd64 ghcr.io/${REPO}:temp-arm64
+          # Annotate manifests
+          echo "Annotating manifests..."
+          docker manifest annotate --insecure ghcr.io/${REPO}:${VERSION} ghcr.io/${REPO}:${VERSION}-amd64 --os linux --arch amd64
+          docker manifest annotate --insecure ghcr.io/${REPO}:${VERSION} ghcr.io/${REPO}:${VERSION}-arm64 --os linux --arch arm64
+          docker manifest annotate --insecure ghcr.io/${REPO}:latest ghcr.io/${REPO}:${VERSION}-amd64 --os linux --arch amd64
+          docker manifest annotate --insecure ghcr.io/${REPO}:latest ghcr.io/${REPO}:${VERSION}-arm64 --os linux --arch arm64
+          
+          # Push manifests with --insecure option
+          echo "Pushing version manifest..."
+          docker manifest push --insecure ghcr.io/${REPO}:${VERSION}
+          
+          echo "Pushing latest manifest..."
+          docker manifest push --insecure ghcr.io/${REPO}:latest
