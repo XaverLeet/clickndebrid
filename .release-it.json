@@ -14,10 +14,7 @@
     "before:release": "echo About to release ${version}."
   },
   "github": {
-    "release": true,
-    "releaseName": "v${version}",
-    "draft": false,
-    "tokenRef": "GITHUB_TOKEN"
+    "release": false
   },
   "plugins": {
     "@release-it/conventional-changelog": {

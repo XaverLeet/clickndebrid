@@ -193,7 +193,19 @@ See [Architecture Documentation](./docs/architecture.md) for details on the proj
 
 ## Release Process
 
-The project uses [Semantic Versioning 2.0](https://semver.org/) with automated release management:
+The project uses [Semantic Versioning 2.0](https://semver.org/) with two release options:
+
+### Option 1: Simple Tag and Push (Recommended)
+
+```bash
+# Create a release using release-it (tags and pushes to GitHub)
+npm run release         # Interactive mode, you choose the version
+npm run release:patch   # Patch release (1.0.0 → 1.0.1)
+npm run release:minor   # Minor release (1.0.0 → 1.1.0)
+npm run release:major   # Major release (1.0.0 → 2.0.0)
+```
+
+### Option 2: Advanced Release with Auto-detection
 
 ```bash
 # Automatically determine version based on commit history
@@ -215,11 +227,7 @@ npm run release:auto -- --set-version=2.0.0
 
 See our [Semantic Versioning Guide](./docs/semver.md) for detailed information on our versioning rules, commit message conventions, and release process.
 
-For automated GitHub releases, create a `.env.release` file with your GitHub token:
-
-```
-GITHUB_TOKEN=your_github_token_here
-```
+**Note:** Once you push the version tag, GitHub Actions will automatically build and publish the release.
 
 ## Contributing
 
