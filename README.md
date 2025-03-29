@@ -43,7 +43,7 @@ git clone https://github.com/XaverLeet/clickndebrid.git
 cd clickndebrid
 
 # Install dependencies
-npm install
+npm install --legacy-peer-deps
 
 # Start the application
 npm start
