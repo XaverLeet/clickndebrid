@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.40 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- No bug fixes
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- ci: implement reliable build status tracking with artifacts (fc6bd09)
+
 ## 1.1.39 (2025-03-29)
 
 ### 🚀 Features
