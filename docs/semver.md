@@ -83,6 +83,35 @@ Verbose commit messages are especially valuable for:
 
 Format longer commits with clear paragraph breaks, bullet points, and structured sections to improve readability.
 
+#### Creating Verbose Commits
+
+For verbose commits with multiple paragraphs or special formatting, use a commit message file instead of command-line arguments:
+
+```bash
+# Create a temporary commit message file
+cat > /tmp/commit_message.txt << 'EOF'
+feat: implement new authentication system
+
+This commit adds a comprehensive authentication system with the following features:
+- OAuth2 integration with multiple providers
+- Two-factor authentication support
+- Role-based access control
+- Session management
+
+The implementation follows security best practices and includes thorough
+documentation in the code. It has been tested with various identity providers
+including Google, GitHub, and Microsoft.
+
+BREAKING CHANGE: The previous auth endpoints have been deprecated and will be
+removed in the next major version. Please update your clients accordingly.
+EOF
+
+# Use the file for your commit
+git commit -F /tmp/commit_message.txt
+```
+
+This approach avoids shell escaping issues and allows for proper formatting of multi-paragraph commit messages.
+
 ## Tooling
 
 Our SemVer compliance is enforced and automated through:
