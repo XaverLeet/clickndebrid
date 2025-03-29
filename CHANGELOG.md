@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.10 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- fix: update @release-it/conventional-changelog to v7.0.2 (d3c8446)
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- No other changes
+
 ## 1.1.9 (2025-03-29)
 
 ### 🚀 Features
