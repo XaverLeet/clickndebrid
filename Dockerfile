@@ -7,7 +7,7 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # Copy source code and config files
 COPY tsconfig.json ./
@@ -27,7 +27,7 @@ WORKDIR /usr/src/app
 # Copy package files and install production dependencies only
 COPY package*.json ./
 # Skip husky installation in production
-RUN npm ci --only=production --ignore-scripts
+RUN npm ci --only=production --ignore-scripts --legacy-peer-deps
 
 # Copy built JavaScript files from builder
 COPY --from=builder /usr/src/app/dist ./dist
