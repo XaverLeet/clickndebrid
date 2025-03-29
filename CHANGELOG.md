@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.27 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- No bug fixes
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- ci: simplify Docker manifest creation to use tag-based references (2a2673c)
+
 ## 1.1.26 (2025-03-29)
 
 ### 🚀 Features
