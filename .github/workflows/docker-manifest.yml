@@ -7,6 +7,9 @@ on:
 jobs:
   check-build-status:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
     outputs:
       amd64-status: ${{ steps.check.outputs.amd64-status }}
       arm64-status: ${{ steps.check.outputs.arm64-status }}
