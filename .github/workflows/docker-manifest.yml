@@ -20,59 +20,89 @@ jobs:
       - name: Check build status
         id: check
         run: |
-          # Persistent file to store build status
-          mkdir -p /tmp/clickndebrid-docker-builds
-          STATUS_FILE="/tmp/clickndebrid-docker-builds/status.txt"
+          # Simpler approach - use environment information directly
+          # Set default values
+          AMD64_STATUS="pending"
+          ARM64_STATUS="pending"
+          VERSION=""
+          READY="false"
 
-          # Initialize file if it doesn't exist
-          if [ ! -f "$STATUS_FILE" ]; then
-            echo "AMD64_STATUS=pending" > "$STATUS_FILE"
-            echo "ARM64_STATUS=pending" >> "$STATUS_FILE"
-            echo "VERSION=" >> "$STATUS_FILE"
-          fi
-
-          # Source current status
-          source "$STATUS_FILE"
-
-          # Update status based on the event type
+          # Set values based on the current event
           echo "Event name: ${{ github.event_name }}"
           echo "Event action: ${{ github.event.action }}"
+          echo "Client payload version: ${{ github.event.client_payload.version }}"
           
-          if [ "${{ github.event_name }}" == "repository_dispatch" ] && [ "${{ github.event.action }}" == "docker-amd64-complete" ]; then
-            echo "Updating AMD64 status to success"
-            echo "AMD64_STATUS=success" > "$STATUS_FILE"
-            echo "ARM64_STATUS=$ARM64_STATUS" >> "$STATUS_FILE"
-            echo "VERSION=${{ github.event.client_payload.version }}" >> "$STATUS_FILE"
+          # This workflow should only run via repository_dispatch events
+          if [ "${{ github.event_name }}" != "repository_dispatch" ]; then
+            echo "Not a repository_dispatch event, skipping"
+            echo "ready=false" >> $GITHUB_OUTPUT
+            exit 0
           fi
 
-          if [ "${{ github.event_name }}" == "repository_dispatch" ] && [ "${{ github.event.action }}" == "docker-arm64-complete" ]; then
-            echo "Updating ARM64 status to success"
-            echo "AMD64_STATUS=$AMD64_STATUS" > "$STATUS_FILE"
-            echo "ARM64_STATUS=success" >> "$STATUS_FILE"
-            echo "VERSION=${{ github.event.client_payload.version }}" >> "$STATUS_FILE"
+          # Create the VERSION.txt file if it doesn't exist
+          mkdir -p /tmp/clickndebrid-docker-builds
+          VERSION_FILE="/tmp/clickndebrid-docker-builds/VERSION.txt"
+          if [ ! -f "$VERSION_FILE" ] && [ -n "${{ github.event.client_payload.version }}" ]; then
+            echo "${{ github.event.client_payload.version }}" > "$VERSION_FILE"
+            echo "Created VERSION file with: ${{ github.event.client_payload.version }}"
+          fi
+          
+          # Read the version from file, or use the event payload version
+          if [ -f "$VERSION_FILE" ]; then
+            VERSION=$(cat "$VERSION_FILE")
+            echo "Read VERSION from file: $VERSION"
+          elif [ -n "${{ github.event.client_payload.version }}" ]; then
+            VERSION="${{ github.event.client_payload.version }}"
+            echo "Using VERSION from event payload: $VERSION"
+          else
+            echo "No VERSION found"
           fi
 
-          # Re-source to get updated status
-          source "$STATUS_FILE"
+          # Create status files if needed
+          AMD64_FILE="/tmp/clickndebrid-docker-builds/AMD64_DONE"
+          ARM64_FILE="/tmp/clickndebrid-docker-builds/ARM64_DONE"
+          
+          # Update status based on the event type
+          if [ "${{ github.event.action }}" == "docker-amd64-complete" ]; then
+            echo "Marking AMD64 as complete"
+            echo "$VERSION" > "$AMD64_FILE"
+          fi
 
-          # Set outputs
-          echo "amd64-status=${AMD64_STATUS}" >> $GITHUB_OUTPUT
-          echo "arm64-status=${ARM64_STATUS}" >> $GITHUB_OUTPUT
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          if [ "${{ github.event.action }}" == "docker-arm64-complete" ]; then
+            echo "Marking ARM64 as complete"
+            echo "$VERSION" > "$ARM64_FILE"
+          fi
 
-          # Current state debugging
-          echo "Current AMD64 Status: $AMD64_STATUS"
-          echo "Current ARM64 Status: $ARM64_STATUS"
-          echo "Current VERSION: $VERSION"
+          # Check if all builds are complete
+          if [ -f "$AMD64_FILE" ]; then
+            AMD64_STATUS="success"
+            AMD64_VERSION=$(cat "$AMD64_FILE")
+            echo "AMD64 build is complete (version: $AMD64_VERSION)"
+          else
+            echo "AMD64 build is not complete"
+          fi
+
+          if [ -f "$ARM64_FILE" ]; then
+            ARM64_STATUS="success"
+            ARM64_VERSION=$(cat "$ARM64_FILE")
+            echo "ARM64 build is complete (version: $ARM64_VERSION)"
+          else
+            echo "ARM64 build is not complete"
+          fi
+
+          # Set outputs for job conditions
+          echo "amd64-status=$AMD64_STATUS" >> $GITHUB_OUTPUT
+          echo "arm64-status=$ARM64_STATUS" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
           
           # Determine if we're ready to build the manifest
           if [ "$AMD64_STATUS" == "success" ] && [ "$ARM64_STATUS" == "success" ] && [ -n "$VERSION" ]; then
-            echo "Both architectures are ready, proceeding with manifest creation"
+            echo "Both architectures are ready for version $VERSION, proceeding with manifest creation"
             echo "ready=true" >> $GITHUB_OUTPUT
-            # Reset status file for next build
-            echo "AMD64_STATUS=pending" > "$STATUS_FILE"
-            echo "ARM64_STATUS=pending" >> "$STATUS_FILE"
-            echo "VERSION=" >> "$STATUS_FILE"
+            
+            # Clean up the status files for the next build
+            rm -f "$AMD64_FILE" "$ARM64_FILE" "$VERSION_FILE"
+            echo "Reset build status for next version"
           else
             echo "Not all conditions met, skipping manifest creation"
             echo "ready=false" >> $GITHUB_OUTPUT
