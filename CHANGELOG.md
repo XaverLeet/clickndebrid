@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.38 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- No bug fixes
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- ci: add waiting feature to Docker manifest builder workflow (ec2a0cc)
+
 ## 1.1.37 (2025-03-29)
 
 ### 🚀 Features
