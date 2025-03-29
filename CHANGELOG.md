@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.30 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- No bug fixes
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- ci: completely redesign Docker CI/CD with separate workflows (7b5781c)
+
 ## 1.1.29 (2025-03-29)
 
 ### 🚀 Features
