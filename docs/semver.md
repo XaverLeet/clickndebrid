@@ -66,10 +66,22 @@ Breaking changes are indicated by appending a `!` after the type or including `B
 Our project allows for verbose, detailed commit messages with relaxed constraints:
 
 - Header line can be up to 150 characters (format: `type: subject`)
-- Body lines can be up to 250 characters
-- Footer lines can be up to 200 characters
+- Body lines can be up to 250 characters (warning only, not error)
+- Footer lines can be up to 200 characters (warning only, not error)
 
 Long detailed explanations are encouraged in multi-paragraph commit message bodies, particularly for complex changes or security-related updates. While we follow conventional commits, we prioritize clarity and thoroughness over strict length limitations.
+
+#### When to Use Verbose Commits
+
+Verbose commit messages are especially valuable for:
+
+1. **Security updates**: Explaining vulnerabilities fixed, their impact, and mitigation steps
+2. **Major features**: Describing implementation details, design decisions, and usage examples
+3. **Breaking changes**: Documenting what changed, why it was necessary, and migration paths
+4. **Complex bug fixes**: Explaining root causes, investigation process, and verification steps
+5. **Architectural changes**: Detailing motivations, alternatives considered, and performance impacts
+
+Format longer commits with clear paragraph breaks, bullet points, and structured sections to improve readability.
 
 ## Tooling
 
