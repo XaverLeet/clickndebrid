@@ -1,5 +1,40 @@
 # Changelog
 
+## 1.1.9 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- fix: improve version parsing in release script (6943c5c)
+- fix: resolve Docker manifest issues in GitHub Actions workflow (e3ea566)
+- fix: suppress deprecation warnings in release-it commands (d111ead)
+- fix: resolve dependency conflicts with conventional changelog plugin (e51e2a9)
+- fix: improve version parsing in release script (7c7e6b6)
+
+### 📚 Documentation
+
+- docs: update installation instructions to use legacy-peer-deps (bbb1b08)
+- docs: add guidance on creating verbose commits with message files (160fead)
+- docs: add comprehensive explanation of verbose commit handling (eec7cae)
+- docs: enhance guidance on verbose commit messages with detailed usage examples (b75cfce)
+- docs: add semver.md references to README and CLAUDE.md (74b430d)
+
+### 🔧 Other Changes
+
+- build: add Git SSH key configuration and push script (23e1201)
+- build: enhance Git workflow to automatically handle package-lock.json (73bfe0a)
+- build: synchronize package-lock.json version with package.json (5ab199d)
+- build: simplify release process by disabling GitHub release creation (01f5f3b)
+- build: update package-lock.json with legacy-peer-deps resolution (2e25b5b)
+- build: clean up redundant files for improved repository structure (e61f9d3)
+- deps: update dependencies to ensure compatibility with enhanced release process (1718b88)
+- build: allow verbose conventional commits (121c86e)
+- build: improve semantic versioning compliance (fa88509)
+- ci: improve Docker build and release workflows with case handling (69fdc24)
+
 ## 1.1.8 (2025-03-29)
 
 ### Changes
