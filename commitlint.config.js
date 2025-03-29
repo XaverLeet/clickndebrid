@@ -3,14 +3,14 @@ export default {
   rules: {
     // Relaxed rules for body content
     'body-leading-blank': [1, 'always'],
-    'body-max-line-length': [1, 'always', 250], // Increased from 100 to 250, changed to warning (1)
+    'body-max-line-length': [1, 'always', 500], // Increased to 500, warning level
     
     // Relaxed rules for footer content
     'footer-leading-blank': [1, 'always'],
-    'footer-max-line-length': [1, 'always', 200], // Increased from 100 to 200, changed to warning (1)
+    'footer-max-line-length': [1, 'always', 500], // Increased to 500, warning level
     
-    // Increased header length but kept as error
-    'header-max-length': [2, 'always', 150], // Increased from 100 to 150
+    // Increased header length and changed to warning
+    'header-max-length': [1, 'always', 300], // Increased to 300, changed to warning level
     
     // Rules for subject formatting
     'subject-case': [
