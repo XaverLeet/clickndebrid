@@ -7,6 +7,9 @@ on:
         description: 'Version tag (e.g., latest, 1.1.7)'
         required: true
         default: 'latest'
+  push:
+    tags:
+      - 'v*'
 
 jobs:
   docker:
@@ -32,6 +35,24 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Extract version from git ref
+        id: extract_version
+        if: github.ref_type == 'tag'
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_ENV
+
+      - name: Set tag for Docker image
+        id: set_tag
+        run: |
+          # Convert repository name to lowercase for Docker compatibility
+          REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "REPO=${REPO}" >> $GITHUB_ENV
+          
+          if [ "${{ github.event_name }}" == "push" ]; then
+            echo "TAG=${VERSION}" >> $GITHUB_ENV
+          else
+            echo "TAG=${{ github.event.inputs.tag }}" >> $GITHUB_ENV
+          fi
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
@@ -39,7 +60,7 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ghcr.io/${{ github.repository }}:${{ github.event.inputs.tag }}
-            ${{ github.event.inputs.tag == 'latest' && format('ghcr.io/{0}:latest', github.repository) || '' }}
+            ghcr.io/${{ env.REPO }}:${{ env.TAG }}
+            ${{ (github.event.inputs.tag == 'latest' || env.TAG == 'latest') && format('ghcr.io/{0}:latest', env.REPO) || '' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

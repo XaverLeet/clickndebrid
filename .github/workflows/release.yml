@@ -82,11 +82,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set lowercase repository name
+        run: |
+          REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "REPO=${REPO}" >> $GITHUB_ENV
+
       - name: Extract metadata for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ghcr.io/${{ env.REPO }}
           tags: |
             type=semver,pattern={{version}}-amd64
             type=ref,event=branch,suffix=-amd64
@@ -123,11 +128,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set lowercase repository name
+        run: |
+          REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "REPO=${REPO}" >> $GITHUB_ENV
+
       - name: Extract metadata for Docker
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ghcr.io/${{ github.repository }}
+          images: ghcr.io/${{ env.REPO }}
           tags: |
             type=semver,pattern={{version}}-arm64
             type=ref,event=branch,suffix=-arm64
@@ -158,20 +168,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           
+      - name: Set lowercase repository name
+        run: |
+          REPO=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
+          echo "REPO=${REPO}" >> $GITHUB_ENV
+          
       - name: Create and push multi-arch manifest
         run: |
           VERSION=${GITHUB_REF#refs/tags/v}
           
           # Create manifest for version tag
-          docker manifest create ghcr.io/${{ github.repository }}:${VERSION} \
-            ghcr.io/${{ github.repository }}:${VERSION}-amd64 \
-            ghcr.io/${{ github.repository }}:${VERSION}-arm64
+          docker manifest create ghcr.io/${REPO}:${VERSION} \
+            ghcr.io/${REPO}:${VERSION}-amd64 \
+            ghcr.io/${REPO}:${VERSION}-arm64
           
           # Create manifest for latest tag
-          docker manifest create ghcr.io/${{ github.repository }}:latest \
-            ghcr.io/${{ github.repository }}:${VERSION}-amd64 \
-            ghcr.io/${{ github.repository }}:${VERSION}-arm64
+          docker manifest create ghcr.io/${REPO}:latest \
+            ghcr.io/${REPO}:${VERSION}-amd64 \
+            ghcr.io/${REPO}:${VERSION}-arm64
           
           # Push manifests
-          docker manifest push ghcr.io/${{ github.repository }}:${VERSION}
-          docker manifest push ghcr.io/${{ github.repository }}:latest
+          docker manifest push ghcr.io/${REPO}:${VERSION}
+          docker manifest push ghcr.io/${REPO}:latest
