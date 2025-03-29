@@ -61,7 +61,7 @@ jobs:
           asset_name: clickndebrid-${{ github.ref_name }}.zip
           asset_content_type: application/zip
 
-  docker:
+  docker-amd64:
     runs-on: ubuntu-latest
     needs: build
     permissions:
@@ -88,18 +88,90 @@ jobs:
         with:
           images: ghcr.io/${{ github.repository }}
           tags: |
-            type=semver,pattern={{version}}
-            type=semver,pattern={{major}}.{{minor}}
-            type=semver,pattern={{major}}
-            type=ref,event=branch
-            type=sha
+            type=semver,pattern={{version}}-amd64
+            type=ref,event=branch,suffix=-amd64
 
-      - name: Build and push Docker image
+      - name: Build and push Docker image (AMD64)
         uses: docker/build-push-action@v5
         with:
           context: .
           push: true
+          platforms: linux/amd64
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  docker-arm64:
+    runs-on: ubuntu-24.04-arm
+    needs: build
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata for Docker
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}-arm64
+            type=ref,event=branch,suffix=-arm64
+
+      - name: Build and push Docker image (ARM64)
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          platforms: linux/arm64
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  create-manifest:
+    runs-on: ubuntu-latest
+    needs: [docker-amd64, docker-arm64]
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Create and push multi-arch manifest
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          
+          # Create manifest for version tag
+          docker manifest create ghcr.io/${{ github.repository }}:${VERSION} \
+            ghcr.io/${{ github.repository }}:${VERSION}-amd64 \
+            ghcr.io/${{ github.repository }}:${VERSION}-arm64
+          
+          # Create manifest for latest tag
+          docker manifest create ghcr.io/${{ github.repository }}:latest \
+            ghcr.io/${{ github.repository }}:${VERSION}-amd64 \
+            ghcr.io/${{ github.repository }}:${VERSION}-arm64
+          
+          # Push manifests
+          docker manifest push ghcr.io/${{ github.repository }}:${VERSION}
+          docker manifest push ghcr.io/${{ github.repository }}:latest
