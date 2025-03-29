@@ -180,22 +180,37 @@ jobs:
           # Enable experimental Docker CLI features for manifest commands
           export DOCKER_CLI_EXPERIMENTAL=enabled
           
-          # Create manifest for version tag
+          # Check if images exist before creating manifests
+          echo "Checking AMD64 image..."
+          docker manifest inspect ghcr.io/${REPO}:${VERSION}-amd64 || { echo "AMD64 image not found"; exit 1; }
+          
+          echo "Checking ARM64 image..."
+          docker manifest inspect ghcr.io/${REPO}:${VERSION}-arm64 || { echo "ARM64 image not found"; exit 1; }
+          
+          # Create manifest for version tag with --amend flag to overwrite if exists
+          echo "Creating version manifest..."
           docker manifest create ghcr.io/${REPO}:${VERSION} \
+            --amend \
             ghcr.io/${REPO}:${VERSION}-amd64 \
             ghcr.io/${REPO}:${VERSION}-arm64
           
-          # Create manifest for latest tag
+          # Create manifest for latest tag with --amend flag
+          echo "Creating latest manifest..."
           docker manifest create ghcr.io/${REPO}:latest \
+            --amend \
             ghcr.io/${REPO}:${VERSION}-amd64 \
             ghcr.io/${REPO}:${VERSION}-arm64
           
           # Annotate manifests with platform info
+          echo "Annotating manifests..."
           docker manifest annotate ghcr.io/${REPO}:${VERSION} ghcr.io/${REPO}:${VERSION}-amd64 --os linux --arch amd64
           docker manifest annotate ghcr.io/${REPO}:${VERSION} ghcr.io/${REPO}:${VERSION}-arm64 --os linux --arch arm64
           docker manifest annotate ghcr.io/${REPO}:latest ghcr.io/${REPO}:${VERSION}-amd64 --os linux --arch amd64
           docker manifest annotate ghcr.io/${REPO}:latest ghcr.io/${REPO}:${VERSION}-arm64 --os linux --arch arm64
           
           # Push manifests
+          echo "Pushing version manifest..."
           docker manifest push ghcr.io/${REPO}:${VERSION}
+          
+          echo "Pushing latest manifest..."
           docker manifest push ghcr.io/${REPO}:latest
