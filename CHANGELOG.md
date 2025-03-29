@@ -1,5 +1,25 @@
 # Changelog
 
+## 1.1.11 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- No bug fixes
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- chore: update package-lock.json with new dependencies (8874eda)
+- ci: add --legacy-peer-deps flag to npm ci commands (345a634)
+- ci: exclude CI workflow from running on release tags (d9d8f62)
+
 ## 1.1.10 (2025-03-29)
 
 ### 🚀 Features
