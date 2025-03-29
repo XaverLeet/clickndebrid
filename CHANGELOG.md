@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.24 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- No bug fixes
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- ci: fix Docker multi-architecture manifest creation with robust tag handling (85496c8)
+
 ## 1.1.23 (2025-03-29)
 
 ### 🚀 Features
