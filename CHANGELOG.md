@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.41 (2025-03-29)
+
+### 🚀 Features
+
+- No new features
+
+### 🐛 Bug Fixes
+
+- No bug fixes
+
+### 📚 Documentation
+
+- No documentation changes
+
+### 🔧 Other Changes
+
+- ci: completely rewrite manifest workflow with simpler approach (545e36f)
+
 ## 1.1.40 (2025-03-29)
 
 ### 🚀 Features
