@@ -289,16 +289,16 @@ jobs:
             exit 1
           fi
           
-          # Pull the images to ensure they're in the local cache
-          echo "Pulling AMD64 image with tag: ${AMD64_TAG}..."
-          docker pull ghcr.io/${REPO}:${AMD64_TAG}
-          
-          echo "Pulling ARM64 image with tag: ${ARM64_TAG}..."
-          docker pull ghcr.io/${REPO}:${ARM64_TAG}
+          # We don't actually need to pull the images before creating the manifest
+          # Skip the pull step which would fail for the ARM64 image on an AMD64 runner
+          echo "Using images without pulling them locally (skipping pull to avoid arch compatibility issues)..."
+          echo "  - ghcr.io/${REPO}:${AMD64_TAG}"
+          echo "  - ghcr.io/${REPO}:${ARM64_TAG}"
           
           # Create the version manifest (with and without v prefix)
+          # Use insecure flag to work around potential registry issues with cross-architecture manifests
           echo "Creating version manifest for ${VERSION}..."
-          docker manifest create ghcr.io/${REPO}:${VERSION} \
+          docker manifest create --insecure ghcr.io/${REPO}:${VERSION} \
             --amend \
             ghcr.io/${REPO}:${AMD64_TAG} \
             ghcr.io/${REPO}:${ARM64_TAG}
@@ -306,7 +306,7 @@ jobs:
           # Also create a manifest with the full version tag if it starts with v
           if [[ "${FULL_VERSION}" == v* ]]; then
             echo "Creating version manifest for ${FULL_VERSION}..."
-            docker manifest create ghcr.io/${REPO}:${FULL_VERSION} \
+            docker manifest create --insecure ghcr.io/${REPO}:${FULL_VERSION} \
               --amend \
               ghcr.io/${REPO}:${AMD64_TAG} \
               ghcr.io/${REPO}:${ARM64_TAG}
@@ -314,7 +314,7 @@ jobs:
           
           # Create the latest manifest
           echo "Creating latest manifest..."
-          docker manifest create ghcr.io/${REPO}:latest \
+          docker manifest create --insecure ghcr.io/${REPO}:latest \
             --amend \
             ghcr.io/${REPO}:${AMD64_TAG} \
             ghcr.io/${REPO}:${ARM64_TAG}
@@ -333,15 +333,43 @@ jobs:
           docker manifest annotate ghcr.io/${REPO}:latest ghcr.io/${REPO}:${AMD64_TAG} --os linux --arch amd64
           docker manifest annotate ghcr.io/${REPO}:latest ghcr.io/${REPO}:${ARM64_TAG} --os linux --arch arm64
           
-          # Push the manifests
-          echo "Pushing manifests..."
-          docker manifest push ghcr.io/${REPO}:${VERSION}
+          # Push the manifests with retry logic
+          echo "Pushing manifests with retry logic..."
+          
+          push_manifest_with_retry() {
+            local manifest=$1
+            local max_retries=3
+            local retry_count=0
+            local success=false
+            
+            while [ $retry_count -lt $max_retries ] && [ "$success" != "true" ]; do
+              echo "Pushing manifest $manifest (attempt $((retry_count+1))/$max_retries)..."
+              if docker manifest push --insecure $manifest; then
+                echo "Successfully pushed $manifest"
+                success=true
+              else
+                retry_count=$((retry_count+1))
+                if [ $retry_count -lt $max_retries ]; then
+                  echo "Failed to push $manifest, retrying in 5 seconds..."
+                  sleep 5
+                else
+                  echo "Failed to push $manifest after $max_retries attempts."
+                  return 1
+                fi
+              fi
+            done
+            return 0
+          }
+          
+          # Push version manifest (without v prefix)
+          push_manifest_with_retry "ghcr.io/${REPO}:${VERSION}" || exit 1
           
           # Push the manifest with the full version tag if it starts with v
           if [[ "${FULL_VERSION}" == v* ]]; then
-            docker manifest push ghcr.io/${REPO}:${FULL_VERSION}
+            push_manifest_with_retry "ghcr.io/${REPO}:${FULL_VERSION}" || exit 1
           fi
           
-          docker manifest push ghcr.io/${REPO}:latest
+          # Push latest manifest
+          push_manifest_with_retry "ghcr.io/${REPO}:latest" || exit 1
           
           echo "Multi-architecture manifests created successfully!"
