@@ -119,12 +119,31 @@ jobs:
       contents: write
       packages: write
     steps:
+      - name: Initialize build status
+        run: |
+          # Clear any old build status first
+          mkdir -p /tmp/clickndebrid-docker-builds
+          rm -f /tmp/clickndebrid-docker-builds/AMD64_DONE
+          rm -f /tmp/clickndebrid-docker-builds/ARM64_DONE
+          rm -f /tmp/clickndebrid-docker-builds/VERSION.txt
+          echo "Cleared previous build status files"
+          
+          # Create VERSION file
+          echo "${{ needs.check-version-tag.outputs.version-tag }}" > /tmp/clickndebrid-docker-builds/VERSION.txt
+          echo "Created VERSION file with: ${{ needs.check-version-tag.outputs.version-tag }}"
+
       - name: Trigger AMD64 build
         uses: peter-evans/repository-dispatch@v2
         with:
           token: ${{ secrets.REPO_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
           event-type: build-docker-amd64
           client-payload: '{"version": "${{ needs.check-version-tag.outputs.version-tag }}"}'
+      
+      - name: Wait before triggering ARM64 build
+        run: |
+          echo "Waiting 5 seconds before triggering ARM64 build..."
+          sleep 5
+          echo "Proceeding with ARM64 build trigger"
 
       - name: Trigger ARM64 build
         uses: peter-evans/repository-dispatch@v2
@@ -132,3 +151,10 @@ jobs:
           token: ${{ secrets.REPO_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
           event-type: build-docker-arm64
           client-payload: '{"version": "${{ needs.check-version-tag.outputs.version-tag }}"}'
+          
+      - name: Trigger manifest build to monitor
+        run: |
+          echo "Both AMD64 and ARM64 builds have been triggered"
+          echo "Version: ${{ needs.check-version-tag.outputs.version-tag }}"
+          echo "The manifest builder will automatically create manifests when both builds complete"
+          echo "If it doesn't complete, you can manually run the Docker Manifest Builder workflow"
