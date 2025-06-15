@@ -58,10 +58,20 @@ class CnlService {
       throw new Error("No links to submit");
     }
     // Convert processed links to newline-separated string and encrypt the response
-    const _processedLinksString = cnlData.files.results
+    const processedLinksString = cnlData.files.results
       .map((r: { processed: string }) => r.processed)
       .join("\r\n");
-    const CnlData = cryptoService.encrypt(cnlData);
+
+    // DEBUG: Log what we're about to submit
+    loggerService.debug("URLs being submitted to destination service", {
+      originalDecrypted: cnlData.decrypted,
+      processedLinks: processedLinksString,
+      package: cnlData.package,
+    });
+
+    // CRITICAL BUG FIX: Use processed links for encryption, not original
+    const processedCnlData = { ...cnlData, decrypted: processedLinksString };
+    const CnlData = cryptoService.encrypt(processedCnlData);
 
     // Submit to destination service
     try {
@@ -106,6 +116,13 @@ class CnlService {
           jk: cnlData.jk,
           crypted: cnlData.crypted,
         },
+      });
+
+      // DEBUG: Log confirmation that processed URLs were submitted
+      loggerService.info("Confirmed: Processed debrid URLs submitted to destination service", {
+        package: cnlData.package,
+        processedUrlCount: cnlData.files?.results.length || 0,
+        destination: config.destinationUrl,
       });
     } catch (err) {
       loggerService.error("Failed to submit package to destination service", {
