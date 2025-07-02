@@ -32,15 +32,21 @@ We follow these specific rules:
 
 ## Automatic Version Determination
 
-Our release process can automatically determine the appropriate version bump based on commit history:
+Our release process uses GitVersion to automatically determine the appropriate version bump based on git history and branch patterns:
 
 ```bash
-# Automatically determine version bump based on commit messages
-npm run release:auto
+# Preview version calculation (via GitHub Actions)
+npm run version:preview
 
-# See what would happen with a dry run
-npm run release:auto -- --dry-run
+# Show current versioning approach
+npm run version:show
 ```
+
+GitVersion calculates versions based on:
+
+- Branch patterns (main, develop, feature/*, hotfix/*, release/*)
+- Conventional commit messages
+- Git history and merge patterns
 
 ## Commit Message Convention
 
@@ -116,9 +122,22 @@ This approach avoids shell escaping issues and allows for proper formatting of m
 
 Our SemVer compliance is enforced and automated through:
 
-1. **Commitlint** - Enforces conventional commits format
-2. **release.sh** - Smart release script with auto version determination
-3. **release-it** - Release automation tool integrated with conventional changelog
+1. **GitVersion** - Automatic semantic version calculation based on git history
+2. **Commitlint** - Enforces conventional commits format
+3. **GitHub Actions** - Automated workflows for version calculation and releases
+4. **GitFlow Branching** - Branch-based version patterns and release management
+
+## GitVersion Branch Patterns
+
+GitVersion calculates different version patterns based on the branch:
+
+| Branch Pattern | Version Format | Example | When Used |
+|---------------|----------------|---------|-----------|
+| `main` | `X.Y.Z` | `1.2.0` | Production releases |
+| `develop` | `X.Y.Z-alpha.N` | `1.2.0-alpha.5` | Development builds |
+| `feature/*` | `X.Y.Z-feature.N` | `1.2.0-feature.3` | Feature development |
+| `hotfix/*` | `X.Y.Z-beta.N` | `1.1.43-beta.1` | Hotfix testing |
+| `release/*` | `X.Y.Z-beta.N` | `1.2.0-beta.2` | Release candidates |
 
 ## Examples
 
@@ -127,6 +146,15 @@ Our SemVer compliance is enforced and automated through:
 - `feat!: change authentication API` → MAJOR increment
 - `refactor: improve code organization` → PATCH increment
 - `docs: update installation instructions` → PATCH increment
+
+## Release Process
+
+1. **Development**: Work on feature branches, merge to `develop`
+2. **Version Preview**: GitVersion shows calculated version in PR comments
+3. **Release**: Use GitHub Actions "Release" workflow with manual approval
+4. **Automation**: GitVersion updates package.json and creates tags automatically
+
+For detailed migration information, see [GitVersion Migration Guide](gitversion-migration.md).
 
 ## Release History
 
