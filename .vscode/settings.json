@@ -27,13 +27,18 @@
     "docker-compose*.yml": "dockercompose",
     "Dockerfile*": "dockerfile"
   },
-  "remote.containers.defaultExtensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"],
+  "remote.containers.defaultExtensions": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode"
+  ],
   "debug.javascript.terminalOptions": {
-    "skipFiles": ["<node_internals>/**"]
+    "skipFiles": [
+      "<node_internals>/**"
+    ]
   },
   "npm.packageManager": "npm",
   "[dockerfile]": {
-    "editor.defaultFormatter": "ms-azuretools.vscode-docker"
+    "editor.defaultFormatter": "ms-azuretools.vscode-containers"
   },
   "[dotenv]": {
     "editor.defaultFormatter": "foxundermoon.shell-format"
