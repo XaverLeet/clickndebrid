@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.1.45-ci.9] - 2025-07-02
+
+## What's Changed
+
+### 🐛 Bug Fixes
+
+- fix: Fixes encryption bug and adds debug logging (c88ba70)
+
+### 🔧 Other Changes
+
+- ci: Adds permissions to CI workflow for PRs (e47ec25)
+- ci: Adds reusable workflow outputs for GitVersion (db9fee4)
+- ci: Removes auto-staging of lockfile in pre-commit hook (e2c7291)
+- ci: Removes release-it and switches to GitVersion for versioning (d63c254)
+- ci: Integrates GitVersion for automated semantic versioning (b92cedc)
+- ci: Integrates GitVersion for automated versioning and release workflow (2bea864)
+- chore: Removes custom release and git helper scripts (1865c60)
+- ci: remove sync_main workflow (7d912dc)
+
 ## 1.1.42 (2025-03-29)
 
 ### 🚀 Features
