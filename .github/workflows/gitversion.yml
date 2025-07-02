@@ -2,9 +2,47 @@ name: GitVersion
 
 on:
   push:
-    branches: [ main, develop, 'feature/*', 'hotfix/*', 'release/*' ]
+    branches: [main, develop, "feature/*", "hotfix/*", "release/*"]
   pull_request:
-    branches: [ main, develop ]
+    branches: [main, develop]
+  workflow_call:
+    outputs:
+      version:
+        description: "Semantic version"
+        value: ${{ jobs.gitversion.outputs.version }}
+      version-json:
+        description: "GitVersion JSON output"
+        value: ${{ jobs.gitversion.outputs.version-json }}
+      full-version:
+        description: "Full semantic version"
+        value: ${{ jobs.gitversion.outputs.full-version }}
+      major:
+        description: "Major version component"
+        value: ${{ jobs.gitversion.outputs.major }}
+      minor:
+        description: "Minor version component"
+        value: ${{ jobs.gitversion.outputs.minor }}
+      patch:
+        description: "Patch version component"
+        value: ${{ jobs.gitversion.outputs.patch }}
+      pre-release-tag:
+        description: "Pre-release tag"
+        value: ${{ jobs.gitversion.outputs.pre-release-tag }}
+      pre-release-number:
+        description: "Pre-release number"
+        value: ${{ jobs.gitversion.outputs.pre-release-number }}
+      informational-version:
+        description: "Informational version"
+        value: ${{ jobs.gitversion.outputs.informational-version }}
+      branch-name:
+        description: "Branch name"
+        value: ${{ jobs.gitversion.outputs.branch-name }}
+      sha:
+        description: "Commit SHA"
+        value: ${{ jobs.gitversion.outputs.sha }}
+      commits-since-version-source:
+        description: "Commits since version source"
+        value: ${{ jobs.gitversion.outputs.commits-since-version-source }}
 
 jobs:
   gitversion:
@@ -32,7 +70,7 @@ jobs:
       - name: Install GitVersion
         uses: gittools/actions/gitversion/setup@v0.10.2
         with:
-          versionSpec: '5.x'
+          versionSpec: "5.x"
 
       - name: Determine Version
         id: gitversion
@@ -57,19 +95,19 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
+          node-version: "20"
+          cache: "npm"
 
       - name: Update package.json version
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/hotfix/') || startsWith(github.ref, 'refs/heads/release/'))
         run: |
           # Update package.json with the calculated version
           npm --no-git-tag-version version ${{ steps.gitversion.outputs.SemVer }}
-          
+
           # Configure git
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
-          
+
           # Check if there are changes to commit
           if git diff --staged --quiet; then
             echo "No changes to package.json version"
@@ -112,18 +150,18 @@ jobs:
             const fullVersion = '${{ needs.gitversion.outputs.full-version }}';
             const branchName = '${{ needs.gitversion.outputs.branch-name }}';
             const commitsSince = '${{ needs.gitversion.outputs.commits-since-version-source }}';
-            
+
             const body = `## 🏷️ GitVersion Preview
-            
+
             This PR will result in version: **\`${version}\`**
-            
+
             **Details:**
             - Full Version: \`${fullVersion}\`
             - Branch: \`${branchName}\`
             - Commits Since Last Version: ${commitsSince}
-            
+
             _This version will be applied when the PR is merged._`;
-            
+
             github.rest.issues.createComment({
               issue_number: context.issue.number,
               owner: context.repo.owner,
