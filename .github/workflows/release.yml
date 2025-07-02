@@ -1,160 +1,260 @@
 name: Release
 
 on:
-  push:
-    branches:
-      - main
-  repository_dispatch:
-    types:
-      - "Release: v*"
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: 'Type of release'
+        required: true
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - patch
+          - minor
+          - major
+      dry_run:
+        description: 'Dry run (do not create actual release)'
+        required: false
+        default: false
+        type: boolean
+      target_branch:
+        description: 'Branch to release from'
+        required: true
+        default: 'main'
+        type: string
 
 jobs:
-  check-version-tag:
+  validate-release:
     runs-on: ubuntu-latest
     outputs:
-      has-version-tag: ${{ steps.check.outputs.has-version-tag }}
-      version-tag: ${{ steps.check.outputs.version-tag }}
-
+      can-release: ${{ steps.validation.outputs.can-release }}
+      current-version: ${{ steps.gitversion.outputs.SemVer }}
+      target-version: ${{ steps.gitversion.outputs.SemVer }}
+      changelog-content: ${{ steps.changelog.outputs.content }}
+    
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.target_branch }}
           fetch-depth: 0
 
-      - name: Check if commit has version tag
-        id: check
-        run: |
-          # Check if this is a repository_dispatch event
-          if [[ "${{ github.event_name }}" == "repository_dispatch" ]]; then
-            # For repository_dispatch events, use the version from client_payload
-            VERSION_TAG="${{ github.event.client_payload.version }}"
-            echo "Running from repository_dispatch with version: ${VERSION_TAG}"
-            
-            # Verify the tag exists
-            if git show-ref --tags --quiet --verify -- "refs/tags/${VERSION_TAG}"; then
-              echo "has-version-tag=true" >> $GITHUB_OUTPUT
-              echo "version-tag=${VERSION_TAG}" >> $GITHUB_OUTPUT
-              echo "Found version tag: ${VERSION_TAG}, proceeding with release"
-            else
-              echo "has-version-tag=false" >> $GITHUB_OUTPUT
-              echo "Version tag ${VERSION_TAG} not found, skipping release"
-            fi
-          else
-            # For push events, check if the commit has a version tag
-            VERSION_TAG=$(git tag --points-at HEAD | grep '^v[0-9]' | sort -V | tail -n 1)
-            
-            # Check if we found a version tag
-            if [ -n "$VERSION_TAG" ]; then
-              echo "has-version-tag=true" >> $GITHUB_OUTPUT
-              echo "version-tag=${VERSION_TAG}" >> $GITHUB_OUTPUT
-              echo "Found version tag: ${VERSION_TAG}, proceeding with release"
-            else
-              echo "has-version-tag=false" >> $GITHUB_OUTPUT
-              echo "No version tag found on this commit, skipping release"
-            fi
-          fi
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v0.10.2
+        with:
+          versionSpec: '5.x'
 
-  build:
-    needs: check-version-tag
-    if: needs.check-version-tag.outputs.has-version-tag == 'true'
+      - name: Determine Version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v0.10.2
+        with:
+          useConfigFile: true
+          configFilePath: GitVersion.yml
+
+      - name: Validate release conditions
+        id: validation
+        run: |
+          # Check if we're on a release-eligible branch
+          if [[ "${{ inputs.target_branch }}" != "main" && ! "${{ inputs.target_branch }}" =~ ^(hotfix|release)/ ]]; then
+            echo "❌ Can only release from main, hotfix/, or release/ branches"
+            echo "can-release=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          # Check if there are any uncommitted changes
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "❌ There are uncommitted changes in the repository"
+            echo "can-release=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          # Check if the calculated version already exists as a tag
+          if git tag -l | grep -q "^v${{ steps.gitversion.outputs.SemVer }}$"; then
+            echo "❌ Tag v${{ steps.gitversion.outputs.SemVer }} already exists"
+            echo "can-release=false" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+          
+          echo "✅ Release validation passed"
+          echo "can-release=true" >> $GITHUB_OUTPUT
+
+      - name: Generate changelog content
+        id: changelog
+        run: |
+          # Get the last tag
+          LAST_TAG=$(git tag -l "v*" --sort=-v:refname | head -n 1)
+          if [ -z "$LAST_TAG" ]; then
+            LAST_TAG=$(git rev-list --max-parents=0 HEAD)
+          fi
+          
+          # Generate changelog content
+          echo "## What's Changed" > /tmp/changelog.md
+          echo "" >> /tmp/changelog.md
+          
+          # Features
+          FEATURES=$(git log --pretty=format:"- %s (%h)" ${LAST_TAG}..HEAD | grep -E "^- feat(\([^)]*\))?: " || true)
+          if [ -n "$FEATURES" ]; then
+            echo "### 🚀 Features" >> /tmp/changelog.md
+            echo "$FEATURES" >> /tmp/changelog.md
+            echo "" >> /tmp/changelog.md
+          fi
+          
+          # Bug fixes
+          FIXES=$(git log --pretty=format:"- %s (%h)" ${LAST_TAG}..HEAD | grep -E "^- fix(\([^)]*\))?: " || true)
+          if [ -n "$FIXES" ]; then
+            echo "### 🐛 Bug Fixes" >> /tmp/changelog.md
+            echo "$FIXES" >> /tmp/changelog.md
+            echo "" >> /tmp/changelog.md
+          fi
+          
+          # Other changes
+          OTHERS=$(git log --pretty=format:"- %s (%h)" ${LAST_TAG}..HEAD | grep -v -E "^- (feat|fix)(\([^)]*\))?: " | grep -v "chore: release" | grep -v "chore: update version" || true)
+          if [ -n "$OTHERS" ]; then
+            echo "### 🔧 Other Changes" >> /tmp/changelog.md
+            echo "$OTHERS" >> /tmp/changelog.md
+            echo "" >> /tmp/changelog.md
+          fi
+          
+          # Set output
+          CHANGELOG_CONTENT=$(cat /tmp/changelog.md)
+          echo "content<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Display release information
+        run: |
+          echo "## 🚀 Release Information" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Target Branch:** \`${{ inputs.target_branch }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Release Type:** \`${{ inputs.release_type }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** \`${{ steps.gitversion.outputs.SemVer }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Full Version:** \`${{ steps.gitversion.outputs.FullSemVer }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Dry Run:** ${{ inputs.dry_run }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📝 Changelog Preview" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.changelog.outputs.content }}" >> $GITHUB_STEP_SUMMARY
+
+  create-release:
+    needs: validate-release
+    if: needs.validate-release.outputs.can-release == 'true' && !inputs.dry_run
     runs-on: ubuntu-latest
     permissions:
       contents: write
-
+      packages: write
+    
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.target_branch }}
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Use Node.js 20.x
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20.x
-          cache: "npm"
+          node-version: '20'
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
 
+      - name: Run tests
+        run: npm test
+
       - name: Build
         run: npm run build
 
-      - name: Create Release
-        id: create_release
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v0.10.2
+        with:
+          versionSpec: '5.x'
+
+      - name: Determine Version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v0.10.2
+        with:
+          useConfigFile: true
+          configFilePath: GitVersion.yml
+
+      - name: Update package.json version
+        run: |
+          npm --no-git-tag-version version ${{ steps.gitversion.outputs.SemVer }}
+
+      - name: Update CHANGELOG.md
+        run: |
+          # Backup existing changelog
+          if [ -f CHANGELOG.md ]; then
+            cp CHANGELOG.md CHANGELOG.md.bak
+          else
+            echo "# Changelog" > CHANGELOG.md.bak
+            echo "" >> CHANGELOG.md.bak
+          fi
+          
+          # Create new changelog
+          echo "# Changelog" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "## [${{ steps.gitversion.outputs.SemVer }}] - $(date +%Y-%m-%d)" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "${{ needs.validate-release.outputs.changelog-content }}" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          
+          # Append old changelog content (skip the first line "# Changelog")
+          tail -n +2 CHANGELOG.md.bak >> CHANGELOG.md
+          rm CHANGELOG.md.bak
+
+      - name: Commit and tag release
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          git add package.json CHANGELOG.md
+          git commit -m "chore: release v${{ steps.gitversion.outputs.SemVer }}"
+          
+          git tag -a "v${{ steps.gitversion.outputs.SemVer }}" -m "Release v${{ steps.gitversion.outputs.SemVer }}"
+          
+          git push origin ${{ inputs.target_branch }}
+          git push origin "v${{ steps.gitversion.outputs.SemVer }}"
+
+      - name: Create GitHub Release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ needs.check-version-tag.outputs.version-tag }}
-          release_name: Release ${{ needs.check-version-tag.outputs.version-tag }}
+          tag_name: v${{ steps.gitversion.outputs.SemVer }}
+          release_name: Release v${{ steps.gitversion.outputs.SemVer }}
+          body: ${{ needs.validate-release.outputs.changelog-content }}
           draft: false
-          prerelease: false
-          body_path: CHANGELOG.md
+          prerelease: ${{ contains(steps.gitversion.outputs.SemVer, '-') }}
 
-      - name: Zip release files
+      - name: Create release artifact
         run: |
           mkdir -p release
           cp -r dist package.json package-lock.json README.md LICENSE CHANGELOG.md release/
-          # Check if .env.example exists before copying
           if [ -f .env.example ]; then
             cp .env.example release/
           fi
           cd release
-          zip -r ../clickndebrid-${{ needs.check-version-tag.outputs.version-tag }}.zip .
+          zip -r ../clickndebrid-v${{ steps.gitversion.outputs.SemVer }}.zip .
 
-      - name: Upload Release Asset
+      - name: Upload release artifact
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./clickndebrid-${{ needs.check-version-tag.outputs.version-tag }}.zip
-          asset_name: clickndebrid-${{ needs.check-version-tag.outputs.version-tag }}.zip
+          asset_path: ./clickndebrid-v${{ steps.gitversion.outputs.SemVer }}.zip
+          asset_name: clickndebrid-v${{ steps.gitversion.outputs.SemVer }}.zip
           asset_content_type: application/zip
 
-  # Trigger Docker image builds
-  trigger-docker-builds:
-    needs: [check-version-tag, build]
-    if: needs.check-version-tag.outputs.has-version-tag == 'true'
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      packages: write
-    steps:
-      - name: Initialize build status
+      - name: Release summary
         run: |
-          # Clear any old build status first
-          mkdir -p /tmp/clickndebrid-docker-builds
-          rm -f /tmp/clickndebrid-docker-builds/AMD64_DONE
-          rm -f /tmp/clickndebrid-docker-builds/ARM64_DONE
-          rm -f /tmp/clickndebrid-docker-builds/VERSION.txt
-          echo "Cleared previous build status files"
-          
-          # Create VERSION file
-          echo "${{ needs.check-version-tag.outputs.version-tag }}" > /tmp/clickndebrid-docker-builds/VERSION.txt
-          echo "Created VERSION file with: ${{ needs.check-version-tag.outputs.version-tag }}"
-
-      - name: Trigger AMD64 build
-        uses: peter-evans/repository-dispatch@v2
-        with:
-          token: ${{ secrets.REPO_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
-          event-type: build-docker-amd64
-          client-payload: '{"version": "${{ needs.check-version-tag.outputs.version-tag }}"}'
-      
-      - name: Wait before triggering ARM64 build
-        run: |
-          echo "Waiting 5 seconds before triggering ARM64 build..."
-          sleep 5
-          echo "Proceeding with ARM64 build trigger"
-
-      - name: Trigger ARM64 build
-        uses: peter-evans/repository-dispatch@v2
-        with:
-          token: ${{ secrets.REPO_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
-          event-type: build-docker-arm64
-          client-payload: '{"version": "${{ needs.check-version-tag.outputs.version-tag }}"}'
-          
-      - name: Trigger manifest builder workflow
-        uses: peter-evans/repository-dispatch@v2
-        with:
-          token: ${{ secrets.REPO_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
-          event-type: docker-manifest-check
-          client-payload: '{"version": "${{ needs.check-version-tag.outputs.version-tag }}"}'
+          echo "## ✅ Release Created Successfully" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Version:** v${{ steps.gitversion.outputs.SemVer }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Tag:** [v${{ steps.gitversion.outputs.SemVer }}](https://github.com/${{ github.repository }}/releases/tag/v${{ steps.gitversion.outputs.SemVer }})" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** ${{ inputs.target_branch }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "🐳 Docker builds will be triggered automatically by the new tag."

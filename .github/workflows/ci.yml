@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [develop]
+    branches: [develop, main]
     tags: ['*']
     paths-ignore:
       - 'CHANGELOG.md'
@@ -20,7 +20,7 @@ jobs:
         run: |
           # Extract tag name if this is a tag push
           TAG_NAME="${GITHUB_REF#refs/tags/}"
-          
+
           # Check if this is a tag push and if it starts with 'v'
           if [[ "$GITHUB_REF" == refs/tags/* && "$TAG_NAME" == v* ]]; then
             echo "This is a version tag push ($TAG_NAME), skipping CI workflow"
@@ -30,8 +30,13 @@ jobs:
             echo "is-version-tag=false" >> $GITHUB_OUTPUT
           fi
 
-  build:
+  gitversion:
     needs: check-if-version-tag
+    if: needs.check-if-version-tag.outputs.is-version-tag != 'true'
+    uses: ./.github/workflows/gitversion.yml
+
+  build:
+    needs: [check-if-version-tag, gitversion]
     if: needs.check-if-version-tag.outputs.is-version-tag != 'true'
     runs-on: ubuntu-latest
 
@@ -64,3 +69,8 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Display version info
+        run: |
+          echo "Current version calculated by GitVersion: ${{ needs.gitversion.outputs.version }}"
+          echo "Full version: ${{ needs.gitversion.outputs.full-version }}"

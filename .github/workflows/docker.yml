@@ -5,7 +5,7 @@ on:
     tags:
       - 'v*.*.*'
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
   workflow_dispatch:
     inputs:
       version:
@@ -23,7 +23,43 @@ env:
   IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  gitversion:
+    if: github.event_name != 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.gitversion.outputs.SemVer }}
+      full-version: ${{ steps.gitversion.outputs.FullSemVer }}
+      is-prerelease: ${{ steps.check-prerelease.outputs.is-prerelease }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v0.10.2
+        with:
+          versionSpec: '5.x'
+
+      - name: Determine Version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v0.10.2
+        with:
+          useConfigFile: true
+          configFilePath: GitVersion.yml
+
+      - name: Check if prerelease
+        id: check-prerelease
+        run: |
+          if [[ "${{ steps.gitversion.outputs.SemVer }}" == *"-"* ]]; then
+            echo "is-prerelease=true" >> $GITHUB_OUTPUT
+          else
+            echo "is-prerelease=false" >> $GITHUB_OUTPUT
+          fi
+
   build:
+    needs: [gitversion]
+    if: always() && (needs.gitversion.result == 'success' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -33,6 +69,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -55,16 +93,22 @@ jobs:
           tags: |
             # Tag with version for tagged releases
             type=ref,event=tag
+            # Tag with GitVersion calculated version for main/develop pushes
+            type=raw,value=${{ needs.gitversion.outputs.version }},enable=${{ github.event_name == 'push' && needs.gitversion.outputs.version != '' }}
             # Tag with version from workflow_dispatch
             type=raw,value=${{ github.event.inputs.version }},enable=${{ github.event_name == 'workflow_dispatch' }}
-            # Tag with 'latest' for main branch
-            type=raw,value=latest,enable={{is_default_branch}}
+            # Tag with 'latest' for main branch releases only
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' && needs.gitversion.outputs.is-prerelease == 'false' }}
+            # Tag with 'edge' for develop branch
+            type=raw,value=edge,enable=${{ github.ref == 'refs/heads/develop' }}
             # Tag with short commit SHA for PRs
             type=sha,prefix={{branch}}-,enable=${{ github.event_name == 'pull_request' }}
           labels: |
             org.opencontainers.image.title=ClicknDebrid
             org.opencontainers.image.description=Click'n'Load proxy server with debrid service integration
             org.opencontainers.image.vendor=${{ github.repository_owner }}
+            org.opencontainers.image.version=${{ needs.gitversion.outputs.version || github.event.inputs.version || 'unknown' }}
+            org.label-schema.version=${{ needs.gitversion.outputs.version || github.event.inputs.version || 'unknown' }}
 
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
@@ -77,12 +121,18 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           provenance: false # Avoid issues with multi-platform builds
+          build-args: |
+            VERSION=${{ needs.gitversion.outputs.version || github.event.inputs.version || 'dev' }}
 
       - name: Generate build summary
         run: |
           echo "## 🐳 Docker Build Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Built Platforms:** linux/amd64, linux/arm64" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ needs.gitversion.outputs.version }}" != "" ]]; then
+            echo "**GitVersion:** ${{ needs.gitversion.outputs.version }}" >> $GITHUB_STEP_SUMMARY
+            echo "**Full Version:** ${{ needs.gitversion.outputs.full-version }}" >> $GITHUB_STEP_SUMMARY
+          fi
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Tags Created:**" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY

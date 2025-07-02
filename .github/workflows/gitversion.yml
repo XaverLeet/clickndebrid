@@ -1,0 +1,132 @@
+name: GitVersion
+
+on:
+  push:
+    branches: [ main, develop, 'feature/*', 'hotfix/*', 'release/*' ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  gitversion:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.gitversion.outputs.SemVer }}
+      version-json: ${{ steps.gitversion.outputs.GitVersionInfo }}
+      full-version: ${{ steps.gitversion.outputs.FullSemVer }}
+      major: ${{ steps.gitversion.outputs.Major }}
+      minor: ${{ steps.gitversion.outputs.Minor }}
+      patch: ${{ steps.gitversion.outputs.Patch }}
+      pre-release-tag: ${{ steps.gitversion.outputs.PreReleaseTag }}
+      pre-release-number: ${{ steps.gitversion.outputs.PreReleaseNumber }}
+      informational-version: ${{ steps.gitversion.outputs.InformationalVersion }}
+      branch-name: ${{ steps.gitversion.outputs.BranchName }}
+      sha: ${{ steps.gitversion.outputs.Sha }}
+      commits-since-version-source: ${{ steps.gitversion.outputs.CommitsSinceVersionSource }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install GitVersion
+        uses: gittools/actions/gitversion/setup@v0.10.2
+        with:
+          versionSpec: '5.x'
+
+      - name: Determine Version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v0.10.2
+        with:
+          useConfigFile: true
+          configFilePath: GitVersion.yml
+
+      - name: Display GitVersion outputs
+        run: |
+          echo "Version: ${{ steps.gitversion.outputs.SemVer }}"
+          echo "Full Version: ${{ steps.gitversion.outputs.FullSemVer }}"
+          echo "Informational Version: ${{ steps.gitversion.outputs.InformationalVersion }}"
+          echo "Branch Name: ${{ steps.gitversion.outputs.BranchName }}"
+          echo "Major: ${{ steps.gitversion.outputs.Major }}"
+          echo "Minor: ${{ steps.gitversion.outputs.Minor }}"
+          echo "Patch: ${{ steps.gitversion.outputs.Patch }}"
+          echo "Pre-release Tag: ${{ steps.gitversion.outputs.PreReleaseTag }}"
+          echo "Pre-release Number: ${{ steps.gitversion.outputs.PreReleaseNumber }}"
+          echo "Commits Since Version Source: ${{ steps.gitversion.outputs.CommitsSinceVersionSource }}"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Update package.json version
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop' || startsWith(github.ref, 'refs/heads/hotfix/') || startsWith(github.ref, 'refs/heads/release/'))
+        run: |
+          # Update package.json with the calculated version
+          npm --no-git-tag-version version ${{ steps.gitversion.outputs.SemVer }}
+          
+          # Configure git
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          # Check if there are changes to commit
+          if git diff --staged --quiet; then
+            echo "No changes to package.json version"
+          else
+            # Commit the version update
+            git add package.json
+            git commit -m "chore: update version to ${{ steps.gitversion.outputs.SemVer }} [skip ci]"
+            git push origin ${{ github.ref_name }}
+          fi
+
+      - name: Create version summary
+        run: |
+          echo "## 🏷️ Version Information" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Calculated Version:** \`${{ steps.gitversion.outputs.SemVer }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Full Version:** \`${{ steps.gitversion.outputs.FullSemVer }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch:** \`${{ steps.gitversion.outputs.BranchName }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Commits Since Last Version:** ${{ steps.gitversion.outputs.CommitsSinceVersionSource }}" >> $GITHUB_STEP_SUMMARY
+          if [ -n "${{ steps.gitversion.outputs.PreReleaseTag }}" ]; then
+            echo "**Pre-release Tag:** \`${{ steps.gitversion.outputs.PreReleaseTag }}\`" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Version Components" >> $GITHUB_STEP_SUMMARY
+          echo "- **Major:** ${{ steps.gitversion.outputs.Major }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Minor:** ${{ steps.gitversion.outputs.Minor }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Patch:** ${{ steps.gitversion.outputs.Patch }}" >> $GITHUB_STEP_SUMMARY
+
+  pr-comment:
+    if: github.event_name == 'pull_request'
+    needs: gitversion
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Comment PR with version info
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const version = '${{ needs.gitversion.outputs.version }}';
+            const fullVersion = '${{ needs.gitversion.outputs.full-version }}';
+            const branchName = '${{ needs.gitversion.outputs.branch-name }}';
+            const commitsSince = '${{ needs.gitversion.outputs.commits-since-version-source }}';
+            
+            const body = `## 🏷️ GitVersion Preview
+            
+            This PR will result in version: **\`${version}\`**
+            
+            **Details:**
+            - Full Version: \`${fullVersion}\`
+            - Branch: \`${branchName}\`
+            - Commits Since Last Version: ${commitsSince}
+            
+            _This version will be applied when the PR is merged._`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
