@@ -1,5 +1,16 @@
 # Changelog
 
+## [1.1.45] - 2025-07-02
+
+## What's Changed
+
+### 🔧 Other Changes
+
+- Merge branch 'develop' (7036050)
+- ci: Switches to ContinuousDelivery mode and updates branch config (9338597)
+- Merge branch 'main' of github-xaverleet:XaverLeet/clickndebrid (d0111fc)
+- ci: Switches release creation to use GitHub CLI (3d331e9)
+
 ## [1.1.45-ci.9] - 2025-07-02
 
 ## What's Changed
