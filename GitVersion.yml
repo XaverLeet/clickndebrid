@@ -1,19 +1,19 @@
-mode: ContinuousDeployment
+mode: ContinuousDelivery
 next-version: 1.1.42
 branches:
   main:
     regex: ^master$|^main$
-    mode: ContinuousDeployment
-    tag: ''
+    mode: ContinuousDelivery
+    tag: ""
     increment: Patch
     prevent-increment-of-merged-branch-version: true
     track-merge-target: false
     tracks-release-branches: false
-    is-release-branch: false
+    is-release-branch: true
   develop:
     regex: ^dev(elop)?(ment)?$
     mode: ContinuousDeployment
-    tag: alpha
+    tag: beta
     increment: Minor
     prevent-increment-of-merged-branch-version: false
     track-merge-target: true
