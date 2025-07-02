@@ -71,7 +71,16 @@ class CnlService {
 
     // CRITICAL BUG FIX: Use processed links for encryption, not original
     const processedCnlData = { ...cnlData, decrypted: processedLinksString };
-    const CnlData = cryptoService.encrypt(processedCnlData);
+    const encryptedProcessedData = cryptoService.encrypt(processedCnlData);
+
+    // DEBUG: Log encryption results to validate assumptions
+    loggerService.debug("Encryption validation", {
+      originalCrypted: cnlData.crypted,
+      processedDataCrypted: encryptedProcessedData.crypted,
+      originalJk: cnlData.jk,
+      processedDataJk: encryptedProcessedData.jk,
+      encryptionWorked: encryptedProcessedData.crypted !== cnlData.crypted,
+    });
 
     // Submit to destination service
     try {
@@ -79,8 +88,18 @@ class CnlService {
         passwords: cnlData.passwords || "",
         source: cnlData.source || "",
         package: cnlData.package || "",
+        jk: cnlData.jk, // Keep original JK for proper decryption
+        crypted: encryptedProcessedData.crypted, // Use encrypted processed links
+      });
+
+      // DEBUG: Log actual form data being sent
+      loggerService.debug("Actual form data being submitted", {
+        passwords: cnlData.passwords || "",
+        source: cnlData.source || "",
+        package: cnlData.package || "",
         jk: cnlData.jk,
-        crypted: cnlData.crypted,
+        crypted: encryptedProcessedData.crypted,
+        cryptedLength: encryptedProcessedData.crypted?.length || 0,
       });
 
       const submitResponse = await fetch(`${config.destinationUrl}/flash/addcrypted2`, {
@@ -114,7 +133,7 @@ class CnlService {
           source: cnlData.source || "",
           package: cnlData.package || "",
           jk: cnlData.jk,
-          crypted: cnlData.crypted,
+          crypted: encryptedProcessedData.crypted,
         },
       });
 
@@ -133,7 +152,7 @@ class CnlService {
       throw err; // Re-throw to allow caller to handle the error
     }
 
-    return CnlData.crypted;
+    return encryptedProcessedData.crypted;
   }
 }
 
